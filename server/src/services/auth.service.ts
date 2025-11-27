@@ -1,4 +1,5 @@
 import { User, IUser } from "../models/user.model";
+import { logger } from "../config/logger.config";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -78,6 +79,7 @@ export const generateAndStoreTokens = async (user: IUser) => {
   if (userDoc) {
     userDoc.refreshTokens = [...(userDoc.refreshTokens || []), refreshToken];
     await userDoc.save();
+    logger.info(`Auth Service: generateAndStoreTokens - Tokens stored for user ID: ${user._id}`);
   }
   return { accessToken, refreshToken };
 };
@@ -101,6 +103,7 @@ export const refreshUserToken = async (token: string): Promise<string> => {
   }
 
   const newAccessToken = generateAccessToken(user);
+  logger.info(`Auth Service: refreshUserToken - New access token generated for user ID: ${user._id}`);
   return newAccessToken;
 };
 
@@ -116,4 +119,5 @@ export const logoutUser = async (token: string): Promise<void> => {
 
   user.refreshTokens = user.refreshTokens.filter((rt) => rt !== token);
   await user.save();
+  logger.info(`Auth Service: logoutUser - User logged out successfully, token removed for user ID: ${user._id}`);
 };

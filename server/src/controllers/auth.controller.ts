@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { logger } from "../config/logger.config";
 import * as authService from "../services/auth.service";
 import { IUser, User } from "../models/user.model";
 import { CLIENT_URL, NODE_ENV } from "../config/env.config";
@@ -194,6 +195,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     });
 
     if (!user) {
+      logger.error("Auth Controller: resetPassword - Invalid or expired token provided.");
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
