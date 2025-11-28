@@ -5,6 +5,7 @@ import api from '../api/axios';
 
 interface AuthState {
     user: User | null;
+    token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (credentials: any) => Promise<void>;
@@ -13,12 +14,14 @@ interface AuthState {
     checkAuth: () => Promise<void>;
     forgotPassword: (email: string) => Promise<void>;
     resetPassword: (token: string, password: string) => Promise<void>;
+    googleLogin: (token: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
             user: null,
+            token: null,
             isAuthenticated: false,
             isLoading: false,
 
@@ -26,7 +29,12 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true });
                 try {
                     const response = await api.post('/auth/login', credentials);
-                    set({ user: response.data.user, isAuthenticated: true, isLoading: false });
+                    set({
+                        user: response.data.user,
+                        token: response.data.token,
+                        isAuthenticated: true,
+                        isLoading: false
+                    });
                 } catch (error) {
                     set({ isLoading: false });
                     throw error;
@@ -37,7 +45,12 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true });
                 try {
                     const response = await api.post('/auth/register', data);
-                    set({ user: response.data.user, isAuthenticated: true, isLoading: false });
+                    set({
+                        user: response.data.user,
+                        token: response.data.token,
+                        isAuthenticated: true,
+                        isLoading: false
+                    });
                 } catch (error) {
                     set({ isLoading: false });
                     throw error;
@@ -50,12 +63,18 @@ export const useAuthStore = create<AuthState>()(
                 } catch (error) {
                     console.error('Logout failed', error);
                 } finally {
-                    set({ user: null, isAuthenticated: false });
+                    set({ user: null, token: null, isAuthenticated: false });
                 }
             },
 
             checkAuth: async () => {
-                // Optional: Implement a generic check auth endpoint if available
+                set({ isLoading: true });
+                try {
+                    const response = await api.get('/users/profile');
+                    set({ user: response.data.user, isAuthenticated: true, isLoading: false });
+                } catch (error) {
+                    set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+                }
             },
 
             forgotPassword: async (email: string) => {
@@ -78,11 +97,31 @@ export const useAuthStore = create<AuthState>()(
                     set({ isLoading: false });
                     throw error;
                 }
+            },
+
+            googleLogin: async (token: string) => {
+                set({ isLoading: true, token }); // Set token temporarily to allow the request
+                try {
+                    // We assume the token allows us to fetch the user
+                    const response = await api.get('/users/profile');
+                    set({
+                        user: response.data.user,
+                        isAuthenticated: true,
+                        isLoading: false
+                    });
+                } catch (error) {
+                    set({ token: null, isLoading: false });
+                    throw error;
+                }
             }
         }),
         {
             name: 'auth-storage',
-            partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+            partialize: (state) => ({
+                user: state.user,
+                token: state.token,
+                isAuthenticated: state.isAuthenticated
+            }),
         }
     )
 );

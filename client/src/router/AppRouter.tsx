@@ -3,6 +3,7 @@ import Signup from "../pages/Auth/Signup";
 import Login from "../pages/Auth/Login";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
+import GoogleCallback from "../pages/Auth/GoogleCallback";
 import PrivateRoute from "../middleware/PrivateRoute";
 import Dashboard from "../pages/Dashboard/Home";
 import Layout from "../layout/Layout";
@@ -16,6 +17,7 @@ export default function AppRouter() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
 
                 {/* Protected Routes */}
                 <Route element={<PrivateRoute />}>
