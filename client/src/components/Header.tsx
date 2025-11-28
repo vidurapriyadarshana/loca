@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { LogOut, Menu, X, Flame } from "lucide-react";
+import { LogOut, Menu, X, Flame, User as UserIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -23,6 +23,7 @@ export default function Header() {
 
     const navItems = [
         { path: "/dashboard", label: "Discover", icon: Flame },
+        { path: "/profile", label: "Profile", icon: UserIcon },
     ];
 
     return (

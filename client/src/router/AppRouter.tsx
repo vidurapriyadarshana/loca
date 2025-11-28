@@ -7,6 +7,7 @@ import GoogleCallback from "../pages/Auth/GoogleCallback";
 import PrivateRoute from "../middleware/PrivateRoute";
 import Dashboard from "../pages/Dashboard/Home";
 import Layout from "../layout/Layout";
+import Profile from "../pages/Profile/Profile";
 
 export default function AppRouter() {
     return (
@@ -23,6 +24,7 @@ export default function AppRouter() {
                 <Route element={<PrivateRoute />}>
                     <Route element={<Layout />}>
                         <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/profile" element={<Profile />} />
                     </Route>
                 </Route>
 

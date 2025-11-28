@@ -11,6 +11,13 @@ export interface User {
         type: string;
         coordinates: number[];
     };
+    is_verified?: boolean;
+    last_active?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    preferences?: {
+        notifications: boolean;
+    };
 }
 
 export interface AuthResponse {
