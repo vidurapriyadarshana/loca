@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 import AuthLayout from "../../layout/AuthLayout";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,27 @@ export default function Signup() {
         });
     };
 
+    const [locationStatus, setLocationStatus] = useState<"idle" | "detecting" | "success" | "error">("idle");
+    const [coordinates, setCoordinates] = useState<[number, number]>([0, 0]);
+
+    useEffect(() => {
+        if ("geolocation" in navigator) {
+            setLocationStatus("detecting");
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setCoordinates([position.coords.longitude, position.coords.latitude]);
+                    setLocationStatus("success");
+                },
+                (error) => {
+                    console.error("Error getting location:", error);
+                    setLocationStatus("error");
+                }
+            );
+        } else {
+            setLocationStatus("error");
+        }
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -51,11 +72,10 @@ export default function Signup() {
             ...formData,
             age: parseInt(formData.age),
             // interests is already an array
-            // Default location and photos for now as per curl example if needed, or let backend handle defaults
             photos: ["https://example.com/photo1.jpg"],
             location: {
                 type: "Point",
-                coordinates: [72.8777, 19.0760]
+                coordinates: coordinates
             }
         };
 
@@ -169,6 +189,16 @@ export default function Signup() {
                         value={formData.bio}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, bio: e.target.value })}
                     />
+                </div>
+
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                    <MapPin className={cn("w-4 h-4", locationStatus === "success" ? "text-green-500" : locationStatus === "error" ? "text-red-500" : "text-gray-400")} />
+                    <span>
+                        {locationStatus === "detecting" && "Detecting location..."}
+                        {locationStatus === "success" && "Location detected"}
+                        {locationStatus === "error" && "Location access denied (using default)"}
+                        {locationStatus === "idle" && "Waiting for location..."}
+                    </span>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
