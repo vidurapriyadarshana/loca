@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import AuthLayout from "../../layout/AuthLayout";
+import { cn } from "@/lib/utils";
+
+const INTERESTS_LIST = [
+    "Music", "Travel", "Food", "Movies", "Tech",
+    "Fitness", "Art", "Gaming", "Reading", "Nature",
+    "Photography", "Fashion", "Cooking", "Dancing", "Pets"
+];
 
 export default function Signup() {
     const navigate = useNavigate();
@@ -19,8 +27,20 @@ export default function Signup() {
         age: "",
         gender: "male",
         bio: "",
-        interests: "", // Comma separated for input
+        interests: [] as string[],
     });
+
+    const toggleInterest = (interest: string) => {
+        setFormData(prev => {
+            const currentInterests = prev.interests;
+            if (currentInterests.includes(interest)) {
+                return { ...prev, interests: currentInterests.filter(i => i !== interest) };
+            } else {
+                if (currentInterests.length >= 5) return prev; // Limit to 5
+                return { ...prev, interests: [...currentInterests, interest] };
+            }
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,7 +50,7 @@ export default function Signup() {
         const payload = {
             ...formData,
             age: parseInt(formData.age),
-            interests: formData.interests.split(",").map(i => i.trim()).filter(i => i),
+            // interests is already an array
             // Default location and photos for now as per curl example if needed, or let backend handle defaults
             photos: ["https://example.com/photo1.jpg"],
             location: {
@@ -50,105 +70,119 @@ export default function Signup() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4 py-10">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-2xl bg-white rounded-3xl shadow-xl overflow-hidden"
-            >
-                <div className="p-8 space-y-8">
-                    <div className="flex items-center gap-4">
-                        <Link to="/login" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <ArrowLeft className="w-6 h-6 text-gray-600" />
-                        </Link>
-                        <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+        <AuthLayout title="Create Account" subtitle="Join the community today">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                    <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg text-center">
+                        {error}
                     </div>
+                )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {error && (
-                            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-lg text-center">
-                                {error}
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Input
-                                label="Full Name"
-                                placeholder="John Doe"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
-                            <Input
-                                label="Email"
-                                type="email"
-                                placeholder="john@example.com"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                required
-                            />
-                            <Input
-                                label="Password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                required
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="Age"
-                                    type="number"
-                                    placeholder="25"
-                                    value={formData.age}
-                                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                                    required
-                                />
-                                <div className="w-full space-y-2">
-                                    <label className="text-sm font-medium text-gray-700 ml-1">Gender</label>
-                                    <select
-                                        className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-primary focus:ring-0 transition-all duration-200 outline-none"
-                                        value={formData.gender}
-                                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                    >
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
                         <Input
-                            label="Interests (comma separated)"
-                            placeholder="Music, Travel, Coding"
-                            value={formData.interests}
-                            onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
+                            id="name"
+                            placeholder="John Doe"
+                            value={formData.name}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+                            required
                         />
-
-                        <div className="w-full space-y-2">
-                            <label className="text-sm font-medium text-gray-700 ml-1">Bio</label>
-                            <textarea
-                                className="w-full px-4 py-3 bg-gray-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-primary focus:ring-0 transition-all duration-200 outline-none placeholder:text-gray-400 min-h-[100px] resize-none"
-                                placeholder="Tell us about yourself..."
-                                value={formData.bio}
-                                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="john@example.com"
+                            value={formData.email}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Password</Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            placeholder="••••••••"
+                            value={formData.password}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="age">Age</Label>
+                            <Input
+                                id="age"
+                                type="number"
+                                placeholder="25"
+                                value={formData.age}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, age: e.target.value })}
+                                required
                             />
                         </div>
-
-                        <Button type="submit" className="w-full" isLoading={isLoading}>
-                            Create Account
-                        </Button>
-                    </form>
-
-                    <div className="text-center text-sm text-gray-500">
-                        Already have an account?{" "}
-                        <Link to="/login" className="font-bold text-primary hover:underline">
-                            Log in
-                        </Link>
+                        <div className="space-y-2">
+                            <Label htmlFor="gender">Gender</Label>
+                            <select
+                                id="gender"
+                                className="w-full px-4 py-2 bg-white border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-input h-12 rounded-xl border-2 border-slate-100 bg-slate-50"
+                                value={formData.gender}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, gender: e.target.value })}
+                            >
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </motion.div>
-        </div>
+
+                <div className="space-y-3">
+                    <Label>Interests (Select up to 5)</Label>
+                    <div className="flex flex-wrap gap-2">
+                        {INTERESTS_LIST.map((interest) => (
+                            <button
+                                key={interest}
+                                type="button"
+                                onClick={() => toggleInterest(interest)}
+                                className={cn(
+                                    "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border-2",
+                                    formData.interests.includes(interest)
+                                        ? "bg-gradient-to-r from-[#fd267a] to-[#ff6036] text-white border-transparent shadow-md transform scale-105"
+                                        : "bg-white text-gray-600 border-slate-200 hover:border-[#fd267a]/50 hover:bg-slate-50"
+                                )}
+                            >
+                                {interest}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <textarea
+                        id="bio"
+                        className="flex min-h-[80px] w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd267a]/20 focus-visible:border-[#fd267a] disabled:cursor-not-allowed disabled:opacity-50 hover:border-slate-300 transition-all duration-200"
+                        placeholder="Tell us about yourself..."
+                        value={formData.bio}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, bio: e.target.value })}
+                    />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Create Account
+                </Button>
+            </form>
+
+            <div className="text-center text-sm text-gray-500">
+                Already have an account?{" "}
+                <Link to="/login" className="font-bold text-[#fd267a] hover:underline">
+                    Log in
+                </Link>
+            </div>
+        </AuthLayout>
     );
 }
