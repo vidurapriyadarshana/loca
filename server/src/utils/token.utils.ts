@@ -1,5 +1,5 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
-import { IUser } from '../models/user.model'; 
+import { IUser } from '../types/user.types';
 import { 
   JWT_SECRET, 
   JWT_EXPIRES_IN, 
@@ -13,8 +13,7 @@ import { JwtPayload } from '../types/express';
  */
 export const generateAccessToken = (user: IUser): string => {
   const payload: JwtPayload = {
-    id: user._id.toString(), 
-    roles: user.roles,
+    id: user._id.toString(),
   };
   const options: SignOptions = { expiresIn: JWT_EXPIRES_IN as SignOptions['expiresIn'] };
   return jwt.sign(payload, JWT_SECRET as Secret, options);

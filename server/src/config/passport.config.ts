@@ -6,7 +6,6 @@ import {
   SERVER_URL
 } from './env.config';
 import { User } from '../models/user.model';
-import { ROLES } from '../constants/roles.constants';
 
 passport.use(new GoogleStrategy({
   clientID: GOOGLE_CLIENT_ID,
@@ -21,9 +20,8 @@ async (accessToken, refreshToken, profile, done) => {
       return done(new Error('No email found from Google profile.'), undefined);
     }
 
-    // Use givenName/familyName if available, fallback to splitting displayName
-    const f_name = profile.name?.givenName || profile.displayName?.split(' ')[0] || "Google";
-    const l_name = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || "User";
+    // Use givenName/familyName if available, fallback to displayName
+    const name = profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() || "Google User";
 
     // 1. Find user by Google ID
     let user = await User.findOne({ googleId: profile.id });
@@ -32,13 +30,11 @@ async (accessToken, refreshToken, profile, done) => {
     // 2. Find by email to link accounts
     user = await User.findOne({ email });
     if (user) {
-      user.googleId = profile.id; 
+      user.googleId = profile.id;
       
-      if (!user.f_name) {
-        user.f_name = f_name;
-      }
-      if (!user.l_name) {
-        user.l_name = l_name;
+      // Update name if not set
+      if (!user.name) {
+        user.name = name;
       }
 
       await user.save();
@@ -49,15 +45,8 @@ async (accessToken, refreshToken, profile, done) => {
     const newUser = new User({
       email: email,
       googleId: profile.id,
-      f_name: f_name,
-      l_name: l_name,
-      roles: [ROLES.User],
-      phoneNumber: '',
-      address: '',
-      id_card_number: '',
-      birthday: undefined,
-      description: '',
-      is_active: true,
+      name: name,
+      is_verified: true, // Auto-verify Google users
     });
 
     await newUser.save();

@@ -1,4 +1,6 @@
-import { User, IUser } from "../models/user.model";
+import { User } from "../models/user.model";
+import { IUser, IUserRegistration, ILocation, IPreferences } from "../types/user.types";
+import { Gender, DEFAULT_NOTIFICATIONS_ENABLED, DEFAULT_IS_VERIFIED } from "../constants/user.constants";
 import { logger } from "../config/logger.config";
 import {
   generateAccessToken,
@@ -17,14 +19,16 @@ import {
 export const registerUser = async (
   email: string,
   password: string,
-  f_name: string,
-  l_name: string,
-  phoneNumber?: string,
-  address?: string,
-  is_active?: boolean,
-  id_card_number?: string,
-  birthday?: Date,
-  description?: string
+  name: string,
+  age?: number,
+  gender?: Gender | string,
+  bio?: string,
+  photos?: string[],
+  interests?: string[],
+  location?: ILocation,
+  is_verified?: boolean,
+  last_active?: Date,
+  preferences?: IPreferences,
 ): Promise<IUser> => {
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -35,14 +39,19 @@ export const registerUser = async (
   const newUser = new User({
     email,
     password,
-    f_name,
-    l_name,
-    phoneNumber,
-    address,
-    is_active,
-    id_card_number,
-    birthday,
-    description,
+    name,
+    age,
+    gender,
+    bio,
+    photos,
+    interests,
+    location,
+    is_verified: is_verified ?? DEFAULT_IS_VERIFIED,
+    last_active: last_active || new Date(),
+    preferences: preferences || {
+      notifications: DEFAULT_NOTIFICATIONS_ENABLED,
+    },
+    refreshTokens: [],
   });
 
   await newUser.save();
@@ -53,6 +62,7 @@ export const registerUser = async (
  * Handles user login (email/password)
  */
 export const loginUser = async (email: string, password: string) => {
+  logger.info(`Auth Service: loginUser - Attempting to log in user with email: ${email}`);
   const user = await User.findOne({ email }).select("+password +refreshTokens");
   if (!user) throw new UnauthorizedError("Invalid credentials.");
   if (!user.password) throw new UnauthorizedError("Please log in with Google.");
@@ -72,6 +82,7 @@ export const loginUser = async (email: string, password: string) => {
  * Generates and stores tokens for OAuth users
  */
 export const generateAndStoreTokens = async (user: IUser) => {
+  logger.info(`Auth Service: generateAndStoreTokens - Generating and storing tokens for user ID: ${user._id}`);
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
@@ -88,8 +99,10 @@ export const generateAndStoreTokens = async (user: IUser) => {
  * Handles refreshing an access token
  */
 export const refreshUserToken = async (token: string): Promise<string> => {
+  logger.info("Auth Service: refreshUserToken - Attempting to refresh user token.");
   const payload = verifyRefreshToken(token);
   if (!payload) {
+    logger.warn("Auth Service: refreshUserToken - Invalid or expired refresh token provided.");
     throw new UnauthorizedError("Invalid or expired refresh token.");
   }
 
@@ -111,8 +124,12 @@ export const refreshUserToken = async (token: string): Promise<string> => {
  * Handles user logout
  */
 export const logoutUser = async (token: string): Promise<void> => {
+  logger.info("Auth Service: logoutUser - Attempting to log out user.");
   const payload = verifyRefreshToken(token);
-  if (!payload) return;
+  if (!payload) {
+    logger.warn("Auth Service: logoutUser - Invalid refresh token provided for logout.");
+    return;
+  }
 
   const user = await User.findById(payload.id).select("+refreshTokens");
   if (!user || !user.refreshTokens) return;

@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../config/logger.config";
 import * as authService from "../services/auth.service";
-import { IUser, User } from "../models/user.model";
+import { IUser } from "../types/user.types";
+import { User } from "../models/user.model";
 import { CLIENT_URL, NODE_ENV } from "../config/env.config";
 import { ApiResponse } from "../utils/ApiResponse";
 import { UnauthorizedError } from "../utils/ApiError";
 import crypto from 'crypto';
 import { sendEmail } from "../services/email.service";
+import { PASSWORD_RESET_EXPIRY_MINUTES } from "../constants/user.constants";
 
 const cookieOptions = {
   httpOnly: true,
@@ -32,27 +34,25 @@ export const register = asyncHandler(
     const {
       email,
       password,
-      f_name, 
-      l_name, 
-      phoneNumber,
-      address,
-      is_active,
-      id_card_number, 
-      birthday,
-      description, 
+      name,
+      age,
+      gender,
+      bio,
+      photos,
+      interests,
+      location,
     } = req.body;
 
     await authService.registerUser(
       email,
       password,
-      f_name,
-      l_name,
-      phoneNumber,
-      address,
-      is_active,
-      id_card_number,
-      birthday,
-      description
+      name,
+      age,
+      gender,
+      bio,
+      photos,
+      interests,
+      location
     );
 
     res
@@ -88,7 +88,7 @@ export const googleCallback = asyncHandler(
     if (!req.user) {
       throw new UnauthorizedError("Google authentication failed.");
     }
-    const user = req.user as IUser;
+    const user = req.user as any as IUser;
     const { accessToken, refreshToken } =
       await authService.generateAndStoreTokens(user);
 
@@ -127,13 +127,13 @@ export const logout = asyncHandler(
 
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
-  console.log(email);
+  logger.debug(`Auth Controller: forgotPassword - Received request for email: ${email}`);
   try {
     const user = await User.findOne({ email });
 
     // Don't tell the user if the email exists or not (security)
     if (!user) {
-      return res.status(200).json({ message: 'If user exists, email has been sent.' });
+      return res.status(200).json({ message: 'User not found' });
     }
 
     // 1. Generate a raw token
@@ -144,7 +144,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
-    user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); 
+    user.passwordResetExpires = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000); 
     await user.save();
 
     // 3. Create reset URL (this link goes to your frontend)
@@ -153,7 +153,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const message = `
       <p>Please click the link below to reset your password:</p>
       <a href="${resetURL}" target="_blank">Reset Password</a>
-      <p>This link is valid for 10 minutes.</p>
+      <p>This link is valid for ${PASSWORD_RESET_EXPIRY_MINUTES} minutes.</p>
     `;
 
     // 4. Send the email
@@ -192,7 +192,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     const user = await User.findOne({
       passwordResetToken: hashedToken,
       passwordResetExpires: { $gt: Date.now() },
-    });
+    }).select("+passwordResetToken +passwordResetExpires");
 
     if (!user) {
       logger.error("Auth Controller: resetPassword - Invalid or expired token provided.");

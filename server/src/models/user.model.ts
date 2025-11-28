@@ -1,29 +1,21 @@
-import { Schema, model, Document, Types } from "mongoose";
+import { Schema, model } from "mongoose";
 import bcrypt from "bcryptjs";
-import { UserRole, ROLE_LIST, ROLES } from "../constants/roles.constants";
-
-export interface IUser extends Document {
-  _id: Types.ObjectId;
-  email: string;
-  f_name: string;
-  l_name: string;
-  phoneNumber?: string;
-  address?: string;
-  id_card_number: string;
-  birthday?: Date;
-  description?: string;
-  passwordResetToken?: string;
-  passwordResetExpires?: Date;
-  is_active?: boolean;
-  password?: string;
-  googleId?: string;
-  roles: UserRole[];
-  refreshTokens: string[];
-  comparePassword(password: string): Promise<boolean>;
-}
+import { IUser } from "../types/user.types";
+import {
+  GENDERS,
+  LOCATION_TYPES,
+  DEFAULT_NOTIFICATIONS_ENABLED,
+  DEFAULT_IS_VERIFIED,
+  BIO_MAX_LENGTH,
+} from "../constants/user.constants";
 
 const userSchema = new Schema<IUser>(
   {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: true,
@@ -31,53 +23,79 @@ const userSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
     },
-    f_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    l_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    phoneNumber: {
+    password: {
       type: String,
       required: false,
-      trim: true,
+      select: false,
     },
-    address: {
+    age: {
+      type: Number,
+      required: false,
+    },
+    gender: {
+      type: String,
+      enum: GENDERS,
+      required: false,
+    },
+    bio: {
       type: String,
       required: false,
-      trim: true,
+      maxlength: BIO_MAX_LENGTH,
     },
-    id_card_number: {
-      type: String,
+    photos: {
+      type: [String],
       required: false,
-      trim: true,
     },
-    birthday: {
+    interests: {
+      type: [String],
+      required: false,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: LOCATION_TYPES,
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        required: false,
+        default: [0, 0],
+      },
+    },
+    is_verified: {
+      type: Boolean,
+      default: DEFAULT_IS_VERIFIED,
+    },
+    last_active: {
       type: Date,
-      required: false,
+      default: Date.now,
     },
-    description: {
-      type: String,
-      required: false,
-      trim: true,
+    preferences: {
+      notifications: {
+        type: Boolean,
+        default: DEFAULT_NOTIFICATIONS_ENABLED,
+      },
     },
     passwordResetToken: {
       type: String,
-      select: false, // Don't send this to the client
+      select: false,
     },
     passwordResetExpires: {
       type: Date,
-      select: false, // Don't send this to the client
+      select: false,
     },
-    is_active: { type: Boolean, default: true },
-    password: { type: String, required: false, select: false },
-    googleId: { type: String, required: false, unique: true, sparse: true },
-    roles: { type: [String], enum: ROLE_LIST, default: [ROLES.User] },
-    refreshTokens: [{ type: String, select: false }],
+    googleId: {
+      type: String,
+      required: false,
+      unique: true,
+      sparse: true,
+    },
+    refreshTokens: [
+      {
+        type: String,
+        select: false,
+      },
+    ],
   },
   { timestamps: true }
 );
