@@ -79,7 +79,7 @@ export const login = asyncHandler(
 
     res
       .status(200)
-      .json(new ApiResponse(200, { accessToken }, "Login successful"));
+      .json(new ApiResponse(200, { accessToken , refreshToken }, "Login successful"));
   }
 );
 

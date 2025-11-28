@@ -10,4 +10,7 @@ router.use(authenticate);
 // Get user profile
 router.get('/profile', userController.getProfile);
 
+// Update user profile (including photos)
+router.put('/profile', userController.updateProfile);
+
 export default router;

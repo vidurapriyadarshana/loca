@@ -12,7 +12,10 @@ const requiredEnvVars = [
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
     'SERVER_URL',
-    'CLIENT_URL'
+    'CLIENT_URL',
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET'
 ];
 
 for (const varName of requiredEnvVars) {
@@ -37,3 +40,7 @@ export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 
 export const SERVER_URL = process.env.SERVER_URL!;
 export const CLIENT_URL = process.env.CLIENT_URL!;
+
+export const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!;
+export const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY!;
+export const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET!;
