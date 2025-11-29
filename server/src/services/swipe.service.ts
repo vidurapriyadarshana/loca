@@ -104,3 +104,40 @@ export const createSwipesBatch = async (
 
   return createdSwipes;
 };
+
+/**
+ * Get swipe history for a user with populated user profiles
+ * Returns swipes sorted by most recent first
+ */
+export const getSwipeHistory = async (
+  userId: string,
+  direction?: SwipeDirection
+): Promise<any[]> => {
+  logger.debug(`Swipe Service: getSwipeHistory - Fetching swipe history for user ${userId}`);
+
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new BadRequestError("Invalid user ID");
+  }
+
+  // Build query filter
+  const filter: any = { swiper: userId };
+  if (direction) {
+    if (!Object.values(SwipeDirection).includes(direction)) {
+      throw new BadRequestError("Invalid swipe direction");
+    }
+    filter.direction = direction;
+  }
+
+  // Find swipes and populate the swiped_on user profiles
+  const swipes = await Swipe.find(filter)
+    .populate({
+      path: 'swiped_on',
+      select: 'name email age gender bio photos interests location last_active is_verified'
+    })
+    .sort({ created_at: -1 }) // Most recent first
+    .lean();
+
+  logger.info(`Swipe Service: Retrieved ${swipes.length} swipe(s) for user ${userId}`);
+
+  return swipes;
+};

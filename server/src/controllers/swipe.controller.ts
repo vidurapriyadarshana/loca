@@ -51,3 +51,38 @@ export const createSwipes = asyncHandler(
       );
   }
 );
+
+/**
+ * Get swipe history with user profiles
+ * GET /api/swipes/history?direction=LEFT|RIGHT
+ */
+export const getSwipeHistory = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+    const { direction } = req.query;
+
+    if (!userId) {
+      throw new BadRequestError("User ID not found in request");
+    }
+
+    logger.debug(`Swipe Controller: getSwipeHistory - Fetching history for user ${userId}`);
+
+    const swipeHistory = await swipeService.getSwipeHistory(
+      userId,
+      direction as any
+    );
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { 
+            count: swipeHistory.length,
+            swipes: swipeHistory 
+          },
+          "Swipe history retrieved successfully"
+        )
+      );
+  }
+);

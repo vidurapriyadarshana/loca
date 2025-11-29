@@ -14,4 +14,12 @@ router.use(authenticate);
  */
 router.post("/", swipeController.createSwipes);
 
+/**
+ * GET /api/swipes/history?direction=LEFT|RIGHT
+ * Get swipe history with populated user profiles
+ * Query params:
+ *   - direction (optional): Filter by swipe direction (LEFT or RIGHT)
+ */
+router.get("/history", swipeController.getSwipeHistory);
+
 export default router;
