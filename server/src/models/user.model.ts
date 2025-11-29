@@ -120,4 +120,7 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Create 2dsphere index for geospatial queries on location
+userSchema.index({ location: "2dsphere" });
+
 export const User = model<IUser>("User", userSchema);

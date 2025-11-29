@@ -154,3 +154,60 @@ export const updateUserLocation = async (
     }
   };
 };
+
+/**
+ * Find nearby users using geospatial query
+ * @param longitude - User's longitude
+ * @param latitude - User's latitude
+ * @param maxDistanceInMeters - Maximum distance in meters (default: 10000 = 10km)
+ * @param limit - Maximum number of users to return (default: 20)
+ */
+export const findNearbyUsers = async (
+  longitude: number,
+  latitude: number,
+  maxDistanceInMeters: number = 10000,
+  limit: number = 20
+) => {
+  const { lng, lat } = validateCoordinates(longitude, latitude);
+
+  // Use $geoNear aggregation for efficient geospatial queries
+  const nearbyUsers = await User.find({
+    location: {
+      $near: {
+        $geometry: {
+          type: 'Point',
+          coordinates: [lng, lat]
+        },
+        $maxDistance: maxDistanceInMeters
+      }
+    }
+  })
+  .select('-password -refreshTokens')
+  .limit(limit);
+
+  return nearbyUsers;
+};
+
+/**
+ * Find users within a specific area (polygon)
+ * @param coordinates - Array of [longitude, latitude] pairs forming a polygon
+ */
+export const findUsersInArea = async (
+  coordinates: number[][],
+  limit: number = 50
+) => {
+  const usersInArea = await User.find({
+    location: {
+      $geoWithin: {
+        $geometry: {
+          type: 'Polygon',
+          coordinates: [coordinates]
+        }
+      }
+    }
+  })
+  .select('-password -refreshTokens')
+  .limit(limit);
+
+  return usersInArea;
+};
