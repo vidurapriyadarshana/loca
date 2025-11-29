@@ -16,6 +16,7 @@ interface AuthState {
     resetPassword: (token: string, password: string) => Promise<void>;
     googleLogin: (token: string) => Promise<void>;
     updateProfile: (data: Partial<User>) => Promise<void>;
+    setToken: (token: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -38,16 +39,26 @@ export const useAuthStore = create<AuthState>()(
                     
                     // Backend returns: {statusCode: 200, data: {user, token}, message, success}
                     const responseData = response.data.data || response.data;
-                    const user = responseData.user;
                     const token = responseData.token || responseData.accessToken;
                     
-                    console.log('Extracted user:', user);
                     console.log('Extracted token:', token);
                     
                     if (!token) {
                         console.error('No token found in response!');
                         throw new Error('Authentication failed: No token received');
                     }
+                    
+                    // Set token first to enable authenticated requests
+                    set({ token, isAuthenticated: true });
+                    
+                    // Fetch full profile data (same as Google login)
+                    const profileResponse = await api.get('/users/profile');
+                    console.log('Profile response:', profileResponse.data);
+                    
+                    const profileData = profileResponse.data.data || profileResponse.data;
+                    const user = profileData;
+                    
+                    console.log('Extracted user profile:', user);
                     
                     set({
                         user,
@@ -63,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
                     console.log('===================');
                 } catch (error) {
                     console.error('Login error:', error);
-                    set({ isLoading: false });
+                    set({ isLoading: false, token: null, isAuthenticated: false });
                     throw error;
                 }
             },
@@ -72,17 +83,31 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true });
                 try {
                     const response = await api.post('/auth/register', data);
+                    console.log('=== REGISTER DEBUG ===');
                     console.log('Register response:', response.data);
                     
                     // Backend returns: {statusCode: 200, data: {user, token}, message, success}
                     const responseData = response.data.data || response.data;
-                    const user = responseData.user;
                     const token = responseData.token || responseData.accessToken;
+                    
+                    console.log('Extracted token:', token);
                     
                     if (!token) {
                         console.error('No token found in response!');
                         throw new Error('Registration failed: No token received');
                     }
+                    
+                    // Set token first to enable authenticated requests
+                    set({ token, isAuthenticated: true });
+                    
+                    // Fetch full profile data (same as Google login)
+                    const profileResponse = await api.get('/users/profile');
+                    console.log('Profile response:', profileResponse.data);
+                    
+                    const profileData = profileResponse.data.data || profileResponse.data;
+                    const user = profileData;
+                    
+                    console.log('Extracted user profile:', user);
                     
                     set({
                         user,
@@ -90,8 +115,12 @@ export const useAuthStore = create<AuthState>()(
                         isAuthenticated: true,
                         isLoading: false
                     });
+                    
+                    console.log('Registration and profile fetch successful!');
+                    console.log('===================');
                 } catch (error) {
-                    set({ isLoading: false });
+                    console.error('Register error:', error);
+                    set({ isLoading: false, token: null, isAuthenticated: false });
                     throw error;
                 }
             },
@@ -115,8 +144,11 @@ export const useAuthStore = create<AuthState>()(
                     const response = await api.get('/users/profile');
                     console.log('checkAuth - Profile response:', response.data);
                     
-                    // API returns user data directly (not wrapped)
-                    const user = response.data;
+                    // Backend returns: {statusCode: 200, data: user, message, success}
+                    const responseData = response.data.data || response.data;
+                    const user = responseData;
+                    
+                    console.log('checkAuth - Extracted user:', user);
                     
                     set({ user, isAuthenticated: true, isLoading: false });
                 } catch (error) {
@@ -148,22 +180,36 @@ export const useAuthStore = create<AuthState>()(
             },
 
             googleLogin: async (token: string) => {
-                set({ isLoading: true, token }); // Set token temporarily to allow the request
+                console.log('=== GOOGLE LOGIN DEBUG ===');
+                console.log('Token received:', token ? token.substring(0, 20) + '...' : 'NULL');
+                
+                set({ isLoading: true, token }); // Set token to enable API requests
+                
                 try {
                     // Fetch user profile with the token
                     const response = await api.get('/users/profile');
-                    console.log('googleLogin - Profile response:', response.data);
+                    console.log('googleLogin - Full response:', response.data);
                     
-                    // API returns user data directly
-                    const user = response.data;
+                    // Backend returns: {statusCode: 200, data: user, message, success}
+                    const responseData = response.data.data || response.data;
+                    const user = responseData;
+                    
+                    console.log('googleLogin - Extracted user:', user);
+                    console.log('googleLogin - User name:', user?.name);
+                    console.log('googleLogin - User email:', user?.email);
                     
                     set({
                         user,
+                        token, // Keep the token
                         isAuthenticated: true,
                         isLoading: false
                     });
+                    
+                    console.log('Google login successful!');
+                    console.log('=========================');
                 } catch (error) {
-                    set({ token: null, isLoading: false });
+                    console.error('Google login error:', error);
+                    set({ token: null, isLoading: false, isAuthenticated: false });
                     throw error;
                 }
             },
@@ -185,6 +231,11 @@ export const useAuthStore = create<AuthState>()(
                     set({ isLoading: false });
                     throw error;
                 }
+            },
+
+            setToken: (token: string) => {
+                console.log('Setting new token in store:', token.substring(0, 20) + '...');
+                set({ token, isAuthenticated: true });
             }
         }),
         {

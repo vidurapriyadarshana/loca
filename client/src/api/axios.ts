@@ -44,26 +44,63 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Don't attempt to refresh if the error is from the login endpoint itself
-        if (originalRequest.url?.includes('/auth/login')) {
+        console.log('=== RESPONSE INTERCEPTOR ERROR ===');
+        console.log('Error status:', error.response?.status);
+        console.log('URL:', originalRequest.url);
+        console.log('Retry flag:', originalRequest._retry);
+
+        // Don't attempt to refresh if the error is from auth endpoints
+        if (originalRequest.url?.includes('/auth/login') || 
+            originalRequest.url?.includes('/auth/register') ||
+            originalRequest.url?.includes('/auth/refresh-token')) {
+            console.log('Auth endpoint error - not retrying');
             return Promise.reject(error);
         }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
+            console.log('Attempting to refresh token...');
 
             try {
-                // Attempt to refresh token
-                await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/refresh-token`, {}, { withCredentials: true });
+                // Attempt to refresh token - backend returns new access token
+                const refreshResponse = await axios.post(
+                    `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/refresh-token`, 
+                    {}, 
+                    { withCredentials: true }
+                );
 
-                // Retry original request
-                return api(originalRequest);
+                console.log('Refresh response:', refreshResponse.data);
+
+                // Extract new token from response
+                const responseData = refreshResponse.data.data || refreshResponse.data;
+                const newToken = responseData.token || responseData.accessToken;
+
+                if (newToken) {
+                    console.log('New token received:', newToken.substring(0, 20) + '...');
+                    
+                    // Update token in store using the proper method
+                    useAuthStore.getState().setToken(newToken);
+                    
+                    // Update the original request with new token
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    
+                    console.log('Token updated, retrying original request...');
+                    
+                    // Retry original request with new token
+                    return api(originalRequest);
+                } else {
+                    console.error('No token in refresh response');
+                    throw new Error('No token received from refresh');
+                }
             } catch (refreshError) {
+                console.error('Token refresh failed:', refreshError);
                 // If refresh fails, logout
                 useAuthStore.getState().logout();
                 return Promise.reject(refreshError);
             }
         }
+        
+        console.log('===================================');
         return Promise.reject(error);
     }
 );

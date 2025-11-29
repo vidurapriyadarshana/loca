@@ -1,6 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { LogOut, Menu, X, Flame, User as UserIcon } from "lucide-react";
+import { LogOut, Menu, X, Flame } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Header() {
     const { user, logout } = useAuthStore();
     const location = useLocation();
+    const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
@@ -23,7 +24,6 @@ export default function Header() {
 
     const navItems = [
         { path: "/dashboard", label: "Discover", icon: Flame },
-        { path: "/profile", label: "Profile", icon: UserIcon },
     ];
 
     return (
@@ -74,18 +74,21 @@ export default function Header() {
 
                     <div className="flex items-center gap-4">
                         {user && (
-                            <div className="flex items-center gap-3 pl-2">
+                            <button
+                                onClick={() => navigate("/profile")}
+                                className="flex items-center gap-3 pl-2 hover:bg-gray-50 rounded-lg pr-3 py-1.5 transition-colors cursor-pointer"
+                            >
                                 <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-2 ring-gray-100">
                                     <AvatarImage src={user.photos?.[0]} alt={user.name} className="object-cover" />
                                     <AvatarFallback className="bg-gradient-to-br from-orange-100 to-red-100 text-orange-600 font-medium">
                                         {user.name?.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div className="hidden lg:block text-sm">
+                                <div className="hidden lg:block text-sm text-left">
                                     <p className="font-medium text-gray-900 leading-none">{user.name}</p>
                                     <p className="text-xs text-gray-500 mt-1">Free Plan</p>
                                 </div>
-                            </div>
+                            </button>
                         )}
 
                         <Button
@@ -121,7 +124,13 @@ export default function Header() {
                     >
                         <div className="container flex flex-col gap-2 p-4">
                             {user && (
-                                <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-gray-50 rounded-xl">
+                                <button
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        navigate("/profile");
+                                    }}
+                                    className="flex items-center gap-3 px-4 py-3 mb-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
+                                >
                                     <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                                         <AvatarImage src={user.photos?.[0]} alt={user.name} className="object-cover" />
                                         <AvatarFallback className="bg-orange-100 text-orange-600">
@@ -132,7 +141,7 @@ export default function Header() {
                                         <p className="font-medium text-gray-900">{user.name}</p>
                                         <p className="text-xs text-gray-500">{user.email}</p>
                                     </div>
-                                </div>
+                                </button>
                             )}
 
                             {navItems.map((item) => {
