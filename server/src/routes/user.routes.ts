@@ -19,7 +19,7 @@ router.put('/location', userController.updateLocation);
 // Get nearby users (uses geospatial index)
 router.get('/nearby', userController.getNearbyUsers);
 
-// Get users in a specific area (polygon)
-router.post('/in-area', userController.getUsersInArea);
+// Get users in a specific area (polygon) - Changed to GET
+router.get('/in-area', userController.getUsersInArea);
 
 export default router;

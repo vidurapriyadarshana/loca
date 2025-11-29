@@ -127,20 +127,35 @@ export const getNearbyUsers = asyncHandler(
 
 /**
  * Find users within a specific area (polygon)
+ * Accepts coordinates as JSON string in query parameter
  */
 export const getUsersInArea = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { coordinates, limit } = req.body;
+    const { coordinates, limit } = req.query;
 
-    if (!coordinates || !Array.isArray(coordinates)) {
+    if (!coordinates) {
       res.status(400).json(
-        new ApiResponse(400, null, 'Coordinates array is required')
+        new ApiResponse(400, null, 'Coordinates parameter is required')
       );
       return;
     }
 
-    const maxLimit = limit || 50;
-    const usersInArea = await userService.findUsersInArea(coordinates, maxLimit);
+    // Parse coordinates from JSON string
+    let parsedCoordinates: number[][];
+    try {
+      parsedCoordinates = JSON.parse(coordinates as string);
+      if (!Array.isArray(parsedCoordinates)) {
+        throw new Error('Coordinates must be an array');
+      }
+    } catch (error) {
+      res.status(400).json(
+        new ApiResponse(400, null, 'Invalid coordinates format. Must be valid JSON array.')
+      );
+      return;
+    }
+
+    const maxLimit = limit ? parseInt(limit as string) : 50;
+    const usersInArea = await userService.findUsersInArea(parsedCoordinates, maxLimit);
 
     res.status(200).json(
       new ApiResponse(
