@@ -7,6 +7,7 @@ import { CLIENT_URL, NODE_ENV } from './config/env.config';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import imageRoutes from './routes/image.routes';
+import swipeRoutes from './routes/swipe.routes';
 import './config/passport.config';
 import { errorHandler } from './middleware/errorHandler.middleware';
 import { logger } from './config/logger.config';
@@ -41,6 +42,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'UP' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/uploads', imageRoutes);
+app.use('/api/swipes', swipeRoutes);
 app.use(errorHandler);
 
 export default app;
