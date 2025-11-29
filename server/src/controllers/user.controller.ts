@@ -23,7 +23,16 @@ export const getProfile = asyncHandler(
       throw new NotFoundError('User not found.');
     }
     
-    res.status(200).json(new ApiResponse(200, user, 'Profile retrieved successfully'));
+    // Check if profile is complete
+    const isProfileComplete = !!(user.age && user.gender);
+    
+    res.status(200).json(
+      new ApiResponse(
+        200, 
+        { ...user.toObject(), isProfileComplete }, 
+        'Profile retrieved successfully'
+      )
+    );
   }
 );
 
@@ -70,8 +79,15 @@ export const updateProfile = asyncHandler(
       throw new NotFoundError('User not found.');
     }
 
+    // Check if profile is complete
+    const isProfileComplete = !!(user.age && user.gender);
+
     res.status(200).json(
-      new ApiResponse(200, user, 'Profile updated successfully')
+      new ApiResponse(
+        200, 
+        { ...user.toObject(), isProfileComplete }, 
+        'Profile updated successfully'
+      )
     );
   }
 );

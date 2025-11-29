@@ -22,10 +22,20 @@ async (accessToken, refreshToken, profile, done) => {
 
     // Use givenName/familyName if available, fallback to displayName
     const name = profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim() || "Google User";
+    
+    // Get Google profile picture
+    const googlePhoto = profile.photos?.[0]?.value || undefined;
 
     // 1. Find user by Google ID
     let user = await User.findOne({ googleId: profile.id });
-    if (user) return done(null, user);
+    if (user) {
+      // Update profile picture if not set and Google has one
+      if (googlePhoto && (!user.photos || user.photos.length === 0)) {
+        user.photos = [googlePhoto];
+        await user.save();
+      }
+      return done(null, user);
+    }
 
     // 2. Find by email to link accounts
     user = await User.findOne({ email });
@@ -37,16 +47,22 @@ async (accessToken, refreshToken, profile, done) => {
         user.name = name;
       }
 
+      // Update profile picture if not set and Google has one
+      if (googlePhoto && (!user.photos || user.photos.length === 0)) {
+        user.photos = [googlePhoto];
+      }
+
       await user.save();
       return done(null, user);
     }
 
-    // 3. Create new user
+    // 3. Create new user with Google profile picture
     const newUser = new User({
       email: email,
       googleId: profile.id,
       name: name,
       is_verified: true, // Auto-verify Google users
+      photos: googlePhoto ? [googlePhoto] : [], // Add Google profile picture
     });
 
     await newUser.save();

@@ -92,8 +92,11 @@ export const googleCallback = asyncHandler(
     const { accessToken, refreshToken } =
       await authService.generateAndStoreTokens(user);
 
+    // Check if profile is complete (has age and gender at minimum)
+    const isProfileComplete = !!(user.age && user.gender);
+
     setRefreshCookie(res, refreshToken);
-    res.redirect(`${CLIENT_URL}/auth/google/callback?token=${accessToken}`);
+    res.redirect(`${CLIENT_URL}/auth/google/callback?token=${accessToken}&profileComplete=${isProfileComplete}`);
   }
 );
 
