@@ -1,31 +1,25 @@
-import { Request, Response } from "express";
-import { BadRequestError } from "../utils/ApiError";
+import { Request, Response, NextFunction } from "express";
 import { ApiResponse } from "../utils/ApiResponse";
-import { imageUploader } from "../utils/imageUploader";
+import * as imageService from "../services/image.service";
 
 const asyncHandler = (
-  fn: (req: Request, res: Response) => Promise<any>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
 ) => {
-  return (req: Request, res: Response, next: any) => {
-    fn(req, res).catch(next);
+  return (req: Request, res: Response, next: NextFunction) => {
+    fn(req, res, next).catch(next);
   };
 };
 
 export const saveImageAndGetUrl = asyncHandler(
-  async (req: Request, res: Response) => {
-    // 1. Check if a file was attached by Multer
-    if (!req.file) {
-      throw new BadRequestError("No image file provided.");
-    }
+  async (req: Request, res: Response, next: NextFunction) => {
+    // Upload image and get URL from service
+    const imageUrl = await imageService.uploadImage(req.file);
 
-    // 2. Pass the file to the service
-    const imageUrl = await imageUploader(req.file);
-
-    // 3. Send the successful response
+    // Send the successful response
     res.status(201).json(
       new ApiResponse(
         201,
-        { url: imageUrl }, // Send URL in data object
+        { url: imageUrl },
         "Image uploaded successfully"
       )
     );
