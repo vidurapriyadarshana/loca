@@ -91,3 +91,67 @@ export const updateProfile = asyncHandler(
     );
   }
 );
+
+/**
+ * Update the location of the currently logged-in user
+ */
+export const updateLocation = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+    const { longitude, latitude } = req.body;
+
+    // Validate coordinates
+    if (longitude === undefined || latitude === undefined) {
+      throw new BadRequestError('Both longitude and latitude are required');
+    }
+
+    // Validate coordinate types and ranges
+    const lng = parseFloat(longitude);
+    const lat = parseFloat(latitude);
+
+    if (isNaN(lng) || isNaN(lat)) {
+      throw new BadRequestError('Longitude and latitude must be valid numbers');
+    }
+
+    // Validate coordinate ranges
+    if (lng < -180 || lng > 180) {
+      throw new BadRequestError('Longitude must be between -180 and 180');
+    }
+
+    if (lat < -90 || lat > 90) {
+      throw new BadRequestError('Latitude must be between -90 and 90');
+    }
+
+    // Update user location
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          location: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          }
+        }
+      },
+      { new: true, runValidators: true }
+    ).select('-password -refreshTokens');
+
+    if (!user) {
+      throw new NotFoundError('User not found.');
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200, 
+        { 
+          location: user.location,
+          coordinates: {
+            longitude: lng,
+            latitude: lat
+          }
+        }, 
+        'Location updated successfully'
+      )
+    );
+  }
+);

@@ -13,4 +13,7 @@ router.get('/profile', userController.getProfile);
 // Update user profile (including photos)
 router.put('/profile', userController.updateProfile);
 
+// Update user location
+router.put('/location', userController.updateLocation);
+
 export default router;
