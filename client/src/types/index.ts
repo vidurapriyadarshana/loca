@@ -22,5 +22,20 @@ export interface User {
 
 export interface AuthResponse {
     user: User;
-    accessToken?: string; // Assuming accessToken might be returned
+    accessToken?: string;
+}
+
+export interface Match {
+    _id: string;
+    user1: User;
+    user2: User;
+    created_at: string;
+}
+
+export interface Swipe {
+    _id: string;
+    swiped_by: string;
+    swiped_on: User;
+    direction: 'LEFT' | 'RIGHT';
+    created_at: string;
 }

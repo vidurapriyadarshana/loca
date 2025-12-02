@@ -1,0 +1,277 @@
+import { useState, useEffect } from 'react';
+import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import { Heart, X, MapPin, Info, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { userAPI, swipeAPI } from '@/api/services';
+import { useAuthStore } from '@/store/authStore';
+import type { User } from '@/types';
+
+export default function Discover() {
+    const { user: currentUser } = useAuthStore();
+    const [users, setUsers] = useState<User[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [swipeQueue, setSwipeQueue] = useState<{ swiped_on: string; direction: 'LEFT' | 'RIGHT' }[]>([]);
+    const [hasMore, setHasMore] = useState(true);
+    const [matchNotification, setMatchNotification] = useState<User | null>(null);
+
+    useEffect(() => {
+        loadNearbyUsers();
+    }, []);
+
+    const loadNearbyUsers = async () => {
+        try {
+            setIsLoading(true);
+            const data = await userAPI.getNearbyUsers({ limit: 20 });
+            const fetchedUsers = data.users || [];
+            
+            // Filter out current user
+            const filtered = fetchedUsers.filter((u: User) => u._id !== currentUser?._id);
+            setUsers(filtered);
+            setHasMore(filtered.length > 0);
+        } catch (error) {
+            console.error('Failed to load nearby users:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSwipe = async (direction: 'LEFT' | 'RIGHT') => {
+        if (currentIndex >= users.length) return;
+
+        const currentUserCard = users[currentIndex];
+        const newSwipe = { swiped_on: currentUserCard._id!, direction };
+
+        // Add to queue
+        const updatedQueue = [...swipeQueue, newSwipe];
+        setSwipeQueue(updatedQueue);
+
+        // Move to next card
+        setCurrentIndex(currentIndex + 1);
+
+        // Send swipes in batch when queue reaches 5 or it's the last card
+        if (updatedQueue.length >= 5 || currentIndex + 1 >= users.length) {
+            try {
+                const response = await swipeAPI.createSwipes(updatedQueue);
+                
+                // Check for new matches
+                if (response.matches && response.matches.length > 0) {
+                    // Show match notification for the first match
+                    const match = response.matches[0];
+                    const matchedUser = match.user1._id === currentUser?._id ? match.user2 : match.user1;
+                    setMatchNotification(matchedUser);
+                    setTimeout(() => setMatchNotification(null), 5000);
+                }
+                
+                // Clear queue after successful submission
+                setSwipeQueue([]);
+            } catch (error) {
+                console.error('Failed to submit swipes:', error);
+            }
+        }
+
+        // Load more users if running low
+        if (currentIndex + 1 >= users.length - 3 && hasMore) {
+            loadNearbyUsers();
+        }
+    };
+
+    const currentUserCard = users[currentIndex];
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+                <Loader2 className="w-10 h-10 animate-spin text-[#fd267a]" />
+            </div>
+        );
+    }
+
+    if (!currentUserCard) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] px-4">
+                <div className="text-center max-w-md">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Heart className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">No more users nearby</h2>
+                    <p className="text-gray-600 mb-6">
+                        Check back later for more potential matches, or try adjusting your search preferences.
+                    </p>
+                    <Button onClick={loadNearbyUsers} className="bg-gradient-to-r from-[#fd267a] to-[#ff6036]">
+                        Refresh
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
+            <div className="w-full max-w-md relative">
+                {/* Match Notification */}
+                {matchNotification && (
+                    <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-4 z-50"
+                    >
+                        <Card className="p-4 bg-white shadow-2xl border-2 border-[#fd267a]">
+                            <div className="flex items-center gap-3">
+                                <Heart className="w-6 h-6 text-[#fd267a] fill-[#fd267a]" />
+                                <div>
+                                    <p className="font-bold text-gray-900">It's a Match!</p>
+                                    <p className="text-sm text-gray-600">You and {matchNotification.name} liked each other</p>
+                                </div>
+                            </div>
+                        </Card>
+                    </motion.div>
+                )}
+
+                {/* Card Stack */}
+                <div className="relative h-[600px]">
+                    {/* Next cards preview (stack effect) */}
+                    {users.slice(currentIndex + 1, currentIndex + 3).map((user, idx) => (
+                        <Card
+                            key={user._id}
+                            className="absolute inset-0 border-2 border-gray-200 shadow-xl"
+                            style={{
+                                transform: `scale(${1 - (idx + 1) * 0.05}) translateY(${(idx + 1) * 10}px)`,
+                                zIndex: 10 - idx,
+                                opacity: 1 - (idx + 1) * 0.3,
+                            }}
+                        />
+                    ))}
+
+                    {/* Current Card */}
+                    <SwipeCard
+                        user={currentUserCard}
+                        onSwipe={handleSwipe}
+                    />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-center items-center gap-6 mt-8">
+                    <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={() => handleSwipe('LEFT')}
+                        className="w-16 h-16 rounded-full border-2 border-gray-300 hover:border-red-400 hover:bg-red-50 hover:scale-110 transition-all shadow-lg"
+                    >
+                        <X className="w-8 h-8 text-gray-600" />
+                    </Button>
+
+                    <Button
+                        size="lg"
+                        onClick={() => handleSwipe('RIGHT')}
+                        className="w-20 h-20 rounded-full bg-gradient-to-br from-[#fd267a] to-[#ff6036] hover:scale-110 transition-all shadow-xl"
+                    >
+                        <Heart className="w-10 h-10 text-white fill-white" />
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Swipeable Card Component
+interface SwipeCardProps {
+    user: User;
+    onSwipe: (direction: 'LEFT' | 'RIGHT') => void;
+}
+
+function SwipeCard({ user, onSwipe }: SwipeCardProps) {
+    const x = useMotionValue(0);
+    const rotate = useTransform(x, [-200, 200], [-25, 25]);
+    const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
+
+    const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        if (Math.abs(info.offset.x) > 100) {
+            onSwipe(info.offset.x > 0 ? 'RIGHT' : 'LEFT');
+        }
+    };
+
+    return (
+        <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            style={{ x, rotate, opacity }}
+            onDragEnd={handleDragEnd}
+            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+            whileTap={{ cursor: 'grabbing' }}
+        >
+            <Card className="h-full w-full border-2 border-gray-200 shadow-2xl overflow-hidden bg-white">
+                {/* Image */}
+                <div className="relative h-[400px] bg-gradient-to-br from-orange-100 to-pink-100">
+                    {user.photos && user.photos[0] ? (
+                        <img
+                            src={user.photos[0]}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-8xl font-bold text-gray-300">
+                                {user.name.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Swipe indicators */}
+                    <motion.div
+                        style={{ opacity: useTransform(x, [0, 100], [0, 1]) }}
+                        className="absolute top-8 right-8 bg-green-500 text-white px-6 py-3 rounded-full font-bold text-2xl rotate-12 border-4 border-white shadow-xl"
+                    >
+                        LIKE
+                    </motion.div>
+                    <motion.div
+                        style={{ opacity: useTransform(x, [-100, 0], [1, 0]) }}
+                        className="absolute top-8 left-8 bg-red-500 text-white px-6 py-3 rounded-full font-bold text-2xl -rotate-12 border-4 border-white shadow-xl"
+                    >
+                        NOPE
+                    </motion.div>
+                </div>
+
+                {/* User Info */}
+                <div className="p-6 space-y-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {user.name}, {user.age}
+                        </h2>
+                        {user.location && (
+                            <div className="flex items-center gap-1 text-gray-600 mt-1">
+                                <MapPin className="w-4 h-4" />
+                                <span className="text-sm">Nearby</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {user.bio && (
+                        <p className="text-gray-700 text-sm line-clamp-2">{user.bio}</p>
+                    )}
+
+                    {user.interests && user.interests.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {user.interests.slice(0, 5).map((interest) => (
+                                <Badge
+                                    key={interest}
+                                    variant="secondary"
+                                    className="px-3 py-1 bg-gray-100 text-gray-700"
+                                >
+                                    {interest}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Info className="w-4 h-4" />
+                        <span>Swipe right to like, left to pass</span>
+                    </div>
+                </div>
+            </Card>
+        </motion.div>
+    );
+}

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type User } from '../types';
 import api from '../api/axios';
+import { userAPI } from '../api/services';
 
 interface AuthState {
     user: User | null;
@@ -51,12 +52,8 @@ export const useAuthStore = create<AuthState>()(
                     // Set token first to enable authenticated requests
                     set({ token, isAuthenticated: true });
                     
-                    // Fetch full profile data (same as Google login)
-                    const profileResponse = await api.get('/users/profile');
-                    console.log('Profile response:', profileResponse.data);
-                    
-                    const profileData = profileResponse.data.data || profileResponse.data;
-                    const user = profileData;
+                    // Fetch full profile data using userAPI service
+                    const user = await userAPI.getProfile();
                     
                     console.log('Extracted user profile:', user);
                     
@@ -100,12 +97,8 @@ export const useAuthStore = create<AuthState>()(
                     // Set token first to enable authenticated requests
                     set({ token, isAuthenticated: true });
                     
-                    // Fetch full profile data (same as Google login)
-                    const profileResponse = await api.get('/users/profile');
-                    console.log('Profile response:', profileResponse.data);
-                    
-                    const profileData = profileResponse.data.data || profileResponse.data;
-                    const user = profileData;
+                    // Fetch full profile data using userAPI service
+                    const user = await userAPI.getProfile();
                     
                     console.log('Extracted user profile:', user);
                     
@@ -141,13 +134,7 @@ export const useAuthStore = create<AuthState>()(
                     const token = get().token;
                     console.log('checkAuth - Token available:', token ? 'Yes' : 'No');
                     
-                    const response = await api.get('/users/profile');
-                    console.log('checkAuth - Profile response:', response.data);
-                    
-                    // Backend returns: {statusCode: 200, data: user, message, success}
-                    const responseData = response.data.data || response.data;
-                    const user = responseData;
-                    
+                    const user = await userAPI.getProfile();
                     console.log('checkAuth - Extracted user:', user);
                     
                     set({ user, isAuthenticated: true, isLoading: false });
@@ -186,14 +173,8 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, token }); // Set token to enable API requests
                 
                 try {
-                    // Fetch user profile with the token
-                    const response = await api.get('/users/profile');
-                    console.log('googleLogin - Full response:', response.data);
-                    
-                    // Backend returns: {statusCode: 200, data: user, message, success}
-                    const responseData = response.data.data || response.data;
-                    const user = responseData;
-                    
+                    // Fetch user profile using userAPI service
+                    const user = await userAPI.getProfile();
                     console.log('googleLogin - Extracted user:', user);
                     console.log('googleLogin - User name:', user?.name);
                     console.log('googleLogin - User email:', user?.email);
@@ -217,14 +198,8 @@ export const useAuthStore = create<AuthState>()(
             updateProfile: async (data) => {
                 set({ isLoading: true });
                 try {
-                    const response = await api.put('/users/profile', data);
-                    console.log('updateProfile - Response:', response.data);
-                    
-                    // Backend returns: {statusCode: 200, data: user, message, success}
-                    const responseData = response.data.data || response.data;
-                    const user = responseData;
-                    
-                    console.log('Extracted user:', user);
+                    const user = await userAPI.updateProfile(data);
+                    console.log('updateProfile - User updated:', user);
                     
                     set({ user, isLoading: false });
                 } catch (error) {

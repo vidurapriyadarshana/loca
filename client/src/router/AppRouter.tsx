@@ -6,6 +6,8 @@ import ResetPassword from "../pages/Auth/ResetPassword";
 import GoogleCallback from "../pages/Auth/GoogleCallback";
 import PrivateRoute from "../middleware/PrivateRoute";
 import Dashboard from "../pages/Dashboard/Home";
+import Discover from "../pages/Dashboard/Discover";
+import Matches from "../pages/Dashboard/Matches";
 import Layout from "../layout/Layout";
 import Profile from "../pages/Profile/Profile";
 
@@ -24,6 +26,8 @@ export default function AppRouter() {
                 <Route element={<PrivateRoute />}>
                     <Route element={<Layout />}>
                         <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/discover" element={<Discover />} />
+                        <Route path="/matches" element={<Matches />} />
                         <Route path="/profile" element={<Profile />} />
                     </Route>
                 </Route>

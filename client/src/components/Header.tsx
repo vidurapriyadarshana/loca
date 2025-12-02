@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { LogOut, Menu, X, Flame } from "lucide-react";
+import { LogOut, Menu, X, Flame, Heart, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -23,7 +23,9 @@ export default function Header() {
     }, []);
 
     const navItems = [
-        { path: "/dashboard", label: "Discover", icon: Flame },
+        { path: "/discover", label: "Discover", icon: Flame },
+        { path: "/matches", label: "Matches", icon: Heart },
+        { path: "/profile", label: "Profile", icon: User },
     ];
 
     return (
@@ -37,7 +39,7 @@ export default function Header() {
         >
             <div className="container flex h-16 items-center justify-between px-4 md:px-8">
                 {/* Logo */}
-                <Link to="/dashboard" className="flex items-center gap-2 group">
+                <Link to="/discover" className="flex items-center gap-2 group">
                     <div className="rounded-full bg-gradient-to-br from-[#fd267a] to-[#ff6036] p-1.5 transition-transform group-hover:scale-110 duration-300">
                         <Flame className="h-5 w-5 text-white fill-white" />
                     </div>
@@ -73,24 +75,6 @@ export default function Header() {
                     <div className="h-6 w-px bg-gray-200" />
 
                     <div className="flex items-center gap-4">
-                        {user && (
-                            <button
-                                onClick={() => navigate("/profile")}
-                                className="flex items-center gap-3 pl-2 hover:bg-gray-50 rounded-lg pr-3 py-1.5 transition-colors cursor-pointer"
-                            >
-                                <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-2 ring-gray-100">
-                                    <AvatarImage src={user.photos?.[0]} alt={user.name} className="object-cover" />
-                                    <AvatarFallback className="bg-gradient-to-br from-orange-100 to-red-100 text-orange-600 font-medium">
-                                        {user.name?.charAt(0).toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="hidden lg:block text-sm text-left">
-                                    <p className="font-medium text-gray-900 leading-none">{user.name}</p>
-                                    <p className="text-xs text-gray-500 mt-1">Free Plan</p>
-                                </div>
-                            </button>
-                        )}
-
                         <Button
                             variant="ghost"
                             size="icon"
