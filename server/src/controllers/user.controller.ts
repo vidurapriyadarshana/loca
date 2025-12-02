@@ -74,7 +74,7 @@ export const updateLocation = asyncHandler(
 export const getNearbyUsers = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.id;
-    const { longitude, latitude, radius, limit } = req.query;
+    const { longitude, latitude, radius, limit, gender } = req.query;
 
     let lng: number;
     let lat: number;
@@ -98,8 +98,9 @@ export const getNearbyUsers = asyncHandler(
 
     const maxDistance = radius ? parseInt(radius as string) : 10000; // Default 10km
     const maxLimit = limit ? parseInt(limit as string) : 20; // Default 20 users
+    const genderFilter = gender as string | undefined;
 
-    const nearbyUsers = await userService.findNearbyUsers(lng, lat, maxDistance, maxLimit);
+    const nearbyUsers = await userService.findNearbyUsers(lng, lat, maxDistance, maxLimit, genderFilter);
 
     // Filter out the current user from results
     const filteredUsers = nearbyUsers.filter(
@@ -116,7 +117,8 @@ export const getNearbyUsers = asyncHandler(
             longitude: lng,
             latitude: lat,
             radius: maxDistance,
-            limit: maxLimit
+            limit: maxLimit,
+            gender: genderFilter
           }
         },
         'Nearby users retrieved successfully'
@@ -131,7 +133,7 @@ export const getNearbyUsers = asyncHandler(
  */
 export const getUsersInArea = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { coordinates, limit } = req.query;
+    const { coordinates, limit, gender } = req.query;
 
     if (!coordinates) {
       res.status(400).json(
@@ -155,14 +157,16 @@ export const getUsersInArea = asyncHandler(
     }
 
     const maxLimit = limit ? parseInt(limit as string) : 50;
-    const usersInArea = await userService.findUsersInArea(parsedCoordinates, maxLimit);
+    const genderFilter = gender as string | undefined;
+    const usersInArea = await userService.findUsersInArea(parsedCoordinates, maxLimit, genderFilter);
 
     res.status(200).json(
       new ApiResponse(
         200,
         {
           users: usersInArea,
-          count: usersInArea.length
+          count: usersInArea.length,
+          gender: genderFilter
         },
         'Users in area retrieved successfully'
       )

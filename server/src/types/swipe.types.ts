@@ -22,10 +22,12 @@ export interface ISwipeCreate {
 }
 
 /**
- * Match data (when both users swipe right on each other)
+ * Match interface (when both users swipe right on each other)
  */
 export interface IMatch {
-  user1: Types.ObjectId;
-  user2: Types.ObjectId;
-  matched_at: Date;
+  _id: Types.ObjectId;
+  user_id_1: Types.ObjectId;  // First user in the match
+  user_id_2: Types.ObjectId;  // Second user in the match
+  matched: boolean;            // Match status (true for active match)
+  created_at: Date;            // When the match was created
 }

@@ -1,4 +1,5 @@
 import { Swipe } from "../models/swipes.model";
+import { Match } from "../models/matches.model";
 import { ISwipe } from "../types/swipe.types";
 import { SwipeDirection } from "../constants/swipe.constants";
 import { logger } from "../config/logger.config";
@@ -14,13 +15,23 @@ interface ISwipeBatch {
 }
 
 /**
- * Create multiple swipes at once
+ * Result of swipe batch operation
+ */
+interface ISwipeBatchResult {
+  createdSwipes: ISwipe[];
+  newMatches: any[];
+  errors: any[];
+}
+
+/**
+ * Create multiple swipes at once and check for mutual matches
  * Each swipe is saved separately in the database
+ * If both users swiped right, create a match entry
  */
 export const createSwipesBatch = async (
   swiperId: string,
   swipes: ISwipeBatch[]
-): Promise<ISwipe[]> => {
+): Promise<ISwipeBatchResult> => {
   logger.debug(`Swipe Service: createSwipesBatch - Processing ${swipes.length} swipes for user ${swiperId}`);
 
   if (!swipes || swipes.length === 0) {
@@ -33,6 +44,7 @@ export const createSwipesBatch = async (
   }
 
   const createdSwipes: ISwipe[] = [];
+  const newMatches: any[] = [];
   const errors: any[] = [];
 
   // Process each swipe separately
@@ -77,6 +89,49 @@ export const createSwipesBatch = async (
       createdSwipes.push(savedSwipe);
       
       logger.debug(`Swipe Service: Successfully created swipe: ${swiperId} -> ${swipeData.swiped_on} (${swipeData.direction})`);
+
+      // Check for mutual match if the current swipe is RIGHT
+      if (swipeData.direction === SwipeDirection.RIGHT) {
+        logger.debug(`Swipe Service: Checking for mutual match between ${swiperId} and ${swipeData.swiped_on}`);
+        
+        // Check if the other user also swiped RIGHT on this user
+        const reverseSwipe = await Swipe.findOne({
+          swiper: swipeData.swiped_on,
+          swiped_on: swiperId,
+          direction: SwipeDirection.RIGHT
+        });
+
+        if (reverseSwipe) {
+          logger.info(`Swipe Service: Mutual match found! Creating match between ${swiperId} and ${swipeData.swiped_on}`);
+          
+          // Create a match entry
+          // Ensure consistent ordering (smaller ID first) to prevent duplicates
+          const [user_id_1, user_id_2] = [swiperId, swipeData.swiped_on].sort();
+          
+          try {
+            const newMatch = new Match({
+              user_id_1,
+              user_id_2,
+              matched: true,
+              created_at: new Date()
+            });
+
+            const savedMatch = await newMatch.save();
+            newMatches.push(savedMatch);
+            
+            logger.info(`Swipe Service: Match created successfully with ID: ${savedMatch._id}`);
+          } catch (matchError: any) {
+            // Handle duplicate match error (might already exist)
+            if (matchError.code === 11000) {
+              logger.warn(`Swipe Service: Match already exists between ${user_id_1} and ${user_id_2}`);
+            } else {
+              logger.error(`Swipe Service: Error creating match: ${matchError.message}`);
+            }
+          }
+        } else {
+          logger.debug(`Swipe Service: No mutual match yet - other user has not swiped right`);
+        }
+      }
     } catch (error: any) {
       // Handle duplicate swipe error (unique constraint violation)
       if (error.code === 11000) {
@@ -95,14 +150,14 @@ export const createSwipesBatch = async (
     }
   }
 
-  logger.info(`Swipe Service: Batch complete - Created: ${createdSwipes.length}, Errors: ${errors.length}`);
+  logger.info(`Swipe Service: Batch complete - Swipes: ${createdSwipes.length}, Matches: ${newMatches.length}, Errors: ${errors.length}`);
 
   // If no swipes were created successfully, throw an error
   if (createdSwipes.length === 0 && errors.length > 0) {
     throw new BadRequestError("Failed to create any swipes", errors);
   }
 
-  return createdSwipes;
+  return { createdSwipes, newMatches, errors };
 };
 
 /**

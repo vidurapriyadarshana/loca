@@ -32,10 +32,16 @@ export const createSwipes = asyncHandler(
 
     logger.debug(`Swipe Controller: createSwipes - Received ${swipes.length} swipes from user ${userId}`);
 
-    const createdSwipes = await swipeService.createSwipesBatch(
+    const result = await swipeService.createSwipesBatch(
       userId,
       swipes
     );
+
+    // Build response message
+    let message = `Successfully created ${result.createdSwipes.length} swipe(s)`;
+    if (result.newMatches.length > 0) {
+      message += ` and ${result.newMatches.length} new match(es)!`;
+    }
 
     res
       .status(201)
@@ -43,10 +49,13 @@ export const createSwipes = asyncHandler(
         new ApiResponse(
           201,
           { 
-            created: createdSwipes.length,
-            swipes: createdSwipes 
+            created: result.createdSwipes.length,
+            swipes: result.createdSwipes,
+            matches: result.newMatches,
+            matchCount: result.newMatches.length,
+            errors: result.errors
           },
-          `Successfully created ${createdSwipes.length} swipe(s)`
+          message
         )
       );
   }
