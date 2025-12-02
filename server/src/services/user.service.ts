@@ -1,6 +1,7 @@
 import { User } from "../models/user.model";
 import { IUser, ILocation } from "../types/user.types";
 import { BadRequestError, NotFoundError } from "../utils/ApiError";
+import { logger } from "../config/logger.config";
 
 /**
  * Profile update data interface
@@ -159,43 +160,74 @@ export const updateUserLocation = async (
  * Find nearby users using geospatial query
  * @param longitude - User's longitude
  * @param latitude - User's latitude
- * @param maxDistanceInMeters - Maximum distance in meters (default: 10000 = 10km)
+ * @param maxDistanceInMeters - Maximum distance in meters (default: 50000 = 50km)
  * @param limit - Maximum number of users to return (default: 20)
  * @param gender - Optional gender filter
  */
 export const findNearbyUsers = async (
   longitude: number,
   latitude: number,
-  maxDistanceInMeters: number = 10000,
+  maxDistanceInMeters: number = 50000,
   limit: number = 20,
   gender?: string
 ) => {
   const { lng, lat } = validateCoordinates(longitude, latitude);
 
-  // Build query filter
-  const filter: any = {
-    location: {
-      $near: {
-        $geometry: {
-          type: 'Point',
-          coordinates: [lng, lat]
-        },
-        $maxDistance: maxDistanceInMeters
-      }
-    }
-  };
+  logger.debug(`findNearbyUsers service called with: lng=${lng}, lat=${lat}, maxDistance=${maxDistanceInMeters}, limit=${limit}, gender=${gender}`);
+
+  // Build the query filter for $geoNear
+  const query: any = {};
 
   // Add gender filter if provided
   if (gender) {
-    filter.gender = gender;
+    query.gender = gender.toLowerCase();
+    logger.debug(`Gender filter applied: ${gender.toLowerCase()}`);
   }
 
-  // Use $geoNear aggregation for efficient geospatial queries
-  const nearbyUsers = await User.find(filter)
-    .select('-password -refreshTokens')
-    .limit(limit);
+  try {
+    // Use aggregation pipeline with $geoNear
+    const pipeline: any[] = [
+      {
+        $geoNear: {
+          near: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          },
+          distanceField: 'distance',
+          maxDistance: maxDistanceInMeters,
+          spherical: true,
+          query: query
+        }
+      },
+      {
+        $limit: limit
+      },
+      {
+        $project: {
+          password: 0,
+          refreshTokens: 0,
+          passwordResetToken: 0,
+          passwordResetExpires: 0
+        }
+      }
+    ];
 
-  return nearbyUsers;
+    logger.debug(`Executing aggregation pipeline: ${JSON.stringify(pipeline[0])}`);
+
+    const nearbyUsers = await User.aggregate(pipeline);
+
+    logger.debug(`findNearbyUsers found ${nearbyUsers.length} users`);
+    
+    // Log first user for debugging if any found
+    if (nearbyUsers.length > 0) {
+      logger.debug(`First user: ${JSON.stringify({ name: nearbyUsers[0].name, gender: nearbyUsers[0].gender, distance: nearbyUsers[0].distance })}`);
+    }
+    
+    return nearbyUsers;
+  } catch (error: any) {
+    logger.error(`Error in findNearbyUsers: ${error.message}`, { stack: error.stack });
+    throw error;
+  }
 };
 
 /**
@@ -218,12 +250,16 @@ export const findUsersInArea = async (
           coordinates: [coordinates]
         }
       }
+    },
+    'location.coordinates': { 
+      $exists: true,
+      $ne: [0, 0]
     }
   };
 
   // Add gender filter if provided
   if (gender) {
-    filter.gender = gender;
+    filter.gender = gender.toLowerCase();
   }
 
   const usersInArea = await User.find(filter)

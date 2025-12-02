@@ -2,6 +2,7 @@ import app from "./app";
 import { PORT } from "./config/env.config";
 import { logger } from "./config/logger.config";
 import connectToDatabase from "./database/mongodb";
+import { ensureIndexes } from "./utils/ensure-indexes";
 
 // --- CATCH UNHANDLED ERRORS ---
 // This catches sync errors
@@ -33,7 +34,10 @@ const startServer = async () => {
         // 1. Connect to database
         await connectToDatabase();
         
-        // 2. Start listening
+        // 2. Ensure indexes exist
+        await ensureIndexes();
+        
+        // 3. Start listening
         app.listen(port, () => {
             console.log(`API running on port ${port}`);
         });
