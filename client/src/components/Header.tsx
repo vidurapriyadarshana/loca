@@ -40,10 +40,10 @@ export default function Header() {
             <div className="container flex h-16 items-center justify-between px-4 md:px-8">
                 {/* Logo */}
                 <Link to="/discover" className="flex items-center gap-2 group">
-                    <div className="rounded-full bg-gradient-to-br from-[#fd267a] to-[#ff6036] p-1.5 transition-transform group-hover:scale-110 duration-300">
+                    <div className="rounded-full bg-gradient-to-br from-primary to-secondary p-1.5 transition-transform group-hover:scale-110 duration-300">
                         <Flame className="h-5 w-5 text-white fill-white" />
                     </div>
-                    <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#fd267a] to-[#ff6036]">
+                    <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
                         Loco
                     </span>
                 </Link>
@@ -61,7 +61,7 @@ export default function Header() {
                                     className={cn(
                                         "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300",
                                         isActive
-                                            ? "text-[#fd267a] bg-red-50"
+                                            ? "text-primary bg-red-50"
                                             : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                                     )}
                                 >
@@ -139,7 +139,7 @@ export default function Header() {
                                         className={cn(
                                             "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                                             isActive
-                                                ? "bg-gradient-to-r from-[#fd267a] to-[#ff6036] text-white shadow-md"
+                                                ? "bg-gradient-to-r from-primary to-secondary text-white shadow-md"
                                                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                         )}
                                     >

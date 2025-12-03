@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
-import { Heart, X, MapPin, Info, Loader2 } from 'lucide-react';
+import { Heart, X, MapPin, Info, Loader2, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { userAPI, swipeAPI } from '@/api/services';
 import { useAuthStore } from '@/store/authStore';
 import type { User } from '@/types';
+
+interface FilterState {
+    radius: number;
+    gender: 'all' | 'male' | 'female' | 'other';
+}
 
 export default function Discover() {
     const { user: currentUser } = useAuthStore();
@@ -16,26 +24,47 @@ export default function Discover() {
     const [swipeQueue, setSwipeQueue] = useState<{ swiped_on: string; direction: 'LEFT' | 'RIGHT' }[]>([]);
     const [hasMore, setHasMore] = useState(true);
     const [matchNotification, setMatchNotification] = useState<User | null>(null);
+    const [filters, setFilters] = useState<FilterState>({
+        radius: 1000,
+        gender: 'all'
+    });
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     useEffect(() => {
         loadNearbyUsers();
-    }, []);
+    }, [filters]);
 
     const loadNearbyUsers = async () => {
         try {
             setIsLoading(true);
-            const data = await userAPI.getNearbyUsers({ limit: 20 });
+            const params: any = { 
+                limit: 20,
+                radius: filters.radius
+            };
+            
+            // Only add gender filter if not 'all'
+            if (filters.gender !== 'all') {
+                params.gender = filters.gender;
+            }
+            
+            const data = await userAPI.getNearbyUsers(params);
             const fetchedUsers = data.users || [];
             
             // Filter out current user
             const filtered = fetchedUsers.filter((u: User) => u._id !== currentUser?._id);
             setUsers(filtered);
+            setCurrentIndex(0); // Reset to first card when filters change
             setHasMore(filtered.length > 0);
         } catch (error) {
             console.error('Failed to load nearby users:', error);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const applyFilters = () => {
+        setIsFilterOpen(false);
+        loadNearbyUsers();
     };
 
     const handleSwipe = async (direction: 'LEFT' | 'RIGHT') => {
@@ -83,7 +112,7 @@ export default function Discover() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-                <Loader2 className="w-10 h-10 animate-spin text-[#fd267a]" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
         );
     }
@@ -99,7 +128,7 @@ export default function Discover() {
                     <p className="text-gray-600 mb-6">
                         Check back later for more potential matches, or try adjusting your search preferences.
                     </p>
-                    <Button onClick={loadNearbyUsers} className="bg-gradient-to-r from-[#fd267a] to-[#ff6036]">
+                    <Button onClick={loadNearbyUsers} className="bg-gradient-to-r from-primary to-secondary">
                         Refresh
                     </Button>
                 </div>
@@ -109,18 +138,111 @@ export default function Discover() {
 
     return (
         <div className="h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
-            <div className="w-full max-w-md relative">
+            <div className="w-full max-w-md relative flex flex-col items-center gap-6">
+                {/* Filter Button - Moved above cards */}
+                <div className="self-end z-50">
+                    <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                        <DialogTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                size="lg"
+                                className="bg-white shadow-lg hover:shadow-xl transition-shadow border-2"
+                            >
+                                <SlidersHorizontal className="w-5 h-5 mr-2" />
+                                Filters
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Discovery Filters</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-6 py-4">
+                                {/* Radius Filter */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <Label>Distance Radius</Label>
+                                        <span className="text-sm font-medium text-gray-700">
+                                            {filters.radius >= 1000 
+                                                ? `${(filters.radius / 1000).toFixed(0)} km` 
+                                                : `${filters.radius} m`}
+                                        </span>
+                                    </div>
+                                    <Slider
+                                        value={[filters.radius]}
+                                        onValueChange={(value: number[]) => setFilters(prev => ({ ...prev, radius: value[0] }))}
+                                        min={100}
+                                        max={10000}
+                                        step={100}
+                                        className="w-full"
+                                    />
+                                    <div className="flex justify-between text-xs text-gray-500">
+                                        <span>100m</span>
+                                        <span>10km</span>
+                                    </div>
+                                </div>
+
+                                {/* Gender Filter */}
+                                <div className="space-y-3">
+                                    <Label>Show Me</Label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Button
+                                            type="button"
+                                            variant={filters.gender === 'all' ? 'default' : 'outline'}
+                                            onClick={() => setFilters(prev => ({ ...prev, gender: 'all' }))}
+                                            className={filters.gender === 'all' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                        >
+                                            Everyone
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={filters.gender === 'female' ? 'default' : 'outline'}
+                                            onClick={() => setFilters(prev => ({ ...prev, gender: 'female' }))}
+                                            className={filters.gender === 'female' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                        >
+                                            Women
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={filters.gender === 'male' ? 'default' : 'outline'}
+                                            onClick={() => setFilters(prev => ({ ...prev, gender: 'male' }))}
+                                            className={filters.gender === 'male' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                        >
+                                            Men
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={filters.gender === 'other' ? 'default' : 'outline'}
+                                            onClick={() => setFilters(prev => ({ ...prev, gender: 'other' }))}
+                                            className={filters.gender === 'other' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                        >
+                                            Other
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Apply Button */}
+                                <Button 
+                                    onClick={applyFilters}
+                                    className="w-full bg-gradient-to-r from-primary to-secondary"
+                                >
+                                    Apply Filters
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
                 {/* Match Notification */}
                 {matchNotification && (
                     <motion.div
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full mb-4 z-50"
+                        className="absolute top-12 left-1/2 -translate-x-1/2 mb-4 z-50"
                     >
-                        <Card className="p-4 bg-white shadow-2xl border-2 border-[#fd267a]">
+                        <Card className="p-4 bg-white shadow-2xl border-2 border-primary">
                             <div className="flex items-center gap-3">
-                                <Heart className="w-6 h-6 text-[#fd267a] fill-[#fd267a]" />
+                                <Heart className="w-6 h-6 text-primary fill-primary" />
                                 <div>
                                     <p className="font-bold text-gray-900">It's a Match!</p>
                                     <p className="text-sm text-gray-600">You and {matchNotification.name} liked each other</p>
@@ -131,7 +253,7 @@ export default function Discover() {
                 )}
 
                 {/* Card Stack */}
-                <div className="relative h-[600px]">
+                <div className="relative h-[600px] w-full">
                     {/* Next cards preview (stack effect) */}
                     {users.slice(currentIndex + 1, currentIndex + 3).map((user, idx) => (
                         <Card
@@ -153,7 +275,7 @@ export default function Discover() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-center items-center gap-6 mt-8">
+                <div className="flex justify-center items-center gap-6 mt-2">
                     <Button
                         size="lg"
                         variant="outline"
@@ -166,7 +288,7 @@ export default function Discover() {
                     <Button
                         size="lg"
                         onClick={() => handleSwipe('RIGHT')}
-                        className="w-20 h-20 rounded-full bg-gradient-to-br from-[#fd267a] to-[#ff6036] hover:scale-110 transition-all shadow-xl"
+                        className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all shadow-xl"
                     >
                         <Heart className="w-10 h-10 text-white fill-white" />
                     </Button>
@@ -187,7 +309,7 @@ function SwipeCard({ user, onSwipe }: SwipeCardProps) {
     const rotate = useTransform(x, [-200, 200], [-25, 25]);
     const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
 
-    const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         if (Math.abs(info.offset.x) > 100) {
             onSwipe(info.offset.x > 0 ? 'RIGHT' : 'LEFT');
         }

@@ -7,7 +7,7 @@
   --color-secondary-foreground: #ffffff;
   --color-background: #f0f2f5;
 
-  --background-image-tinder-gradient: linear-gradient(to right, #fd267a, #ff6036);
+  --background-image-tinder-gradient: linear-gradient(to right, var(--color-primary), var(--color-secondary));
 
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;

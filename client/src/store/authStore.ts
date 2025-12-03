@@ -63,6 +63,29 @@ export const useAuthStore = create<AuthState>()(
                         isAuthenticated: true,
                         isLoading: false
                     });
+
+                    // Automatically update location after login
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            async (position) => {
+                                try {
+                                    await userAPI.updateLocation(
+                                        position.coords.longitude,
+                                        position.coords.latitude
+                                    );
+                                    console.log('Location updated automatically');
+                                    // Refresh user profile with new location
+                                    const updatedUser = await userAPI.getProfile();
+                                    set({ user: updatedUser });
+                                } catch (locError) {
+                                    console.error('Failed to update location automatically:', locError);
+                                }
+                            },
+                            (error) => {
+                                console.error('Geolocation error:', error);
+                            }
+                        );
+                    }
                     
                     // Verify state was set
                     const state = get();

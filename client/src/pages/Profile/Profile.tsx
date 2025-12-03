@@ -7,12 +7,15 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Calendar, Mail, CheckCircle2, Clock, Bell, Camera, Loader2, Pencil, X, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import api from "../../api/axios";
+import ImageCropper from "@/components/ImageCropper";
 
 export default function Profile() {
     const { user, updateProfile, checkAuth, isLoading: isAuthLoading } = useAuthStore();
     const [isUploading, setIsUploading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isCropperOpen, setIsCropperOpen] = useState(false);
+    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     
     // Form state for editable fields
     const [formData, setFormData] = useState({
@@ -22,8 +25,6 @@ export default function Profile() {
         gender: "",
         bio: "",
         interests: "",
-        latitude: "",
-        longitude: "",
         password: "" // Optional - only if user wants to change password
     });
 
@@ -44,14 +45,12 @@ export default function Profile() {
                 gender: user.gender || "",
                 bio: user.bio || "",
                 interests: user.interests?.join(", ") || "",
-                latitude: user.location?.coordinates?.[1]?.toString() || "",
-                longitude: user.location?.coordinates?.[0]?.toString() || "",
                 password: ""
             });
         }
     }, [user]);
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -67,8 +66,19 @@ export default function Profile() {
             return;
         }
 
+        setSelectedImageFile(file);
+        setIsCropperOpen(true);
+        // Reset the input value so the same file can be selected again if needed
+        e.target.value = '';
+    };
+
+    const handleCropComplete = async (croppedImageBlob: Blob) => {
+        setIsCropperOpen(false);
         setIsUploading(true);
+
         const formData = new FormData();
+        // Convert blob to file
+        const file = new File([croppedImageBlob], "profile-picture.jpg", { type: "image/jpeg" });
         formData.append("image", file);
 
         try {
@@ -103,6 +113,7 @@ export default function Profile() {
             alert(errorMessage);
         } finally {
             setIsUploading(false);
+            setSelectedImageFile(null);
         }
     };
 
@@ -117,8 +128,6 @@ export default function Profile() {
                     gender: user.gender || "",
                     bio: user.bio || "",
                     interests: user.interests?.join(", ") || "",
-                    latitude: user.location?.coordinates?.[1]?.toString() || "",
-                    longitude: user.location?.coordinates?.[0]?.toString() || "",
                     password: ""
                 });
             }
@@ -188,19 +197,6 @@ export default function Profile() {
                 updateData.password = formData.password;
             }
 
-            // Add location if coordinates are provided
-            if (formData.latitude && formData.longitude) {
-                const lat = parseFloat(formData.latitude);
-                const lng = parseFloat(formData.longitude);
-                
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    updateData.location = {
-                        type: "Point",
-                        coordinates: [lng, lat] // [longitude, latitude]
-                    };
-                }
-            }
-
             console.log('Sending update data:', updateData);
 
             await updateProfile(updateData);
@@ -222,12 +218,15 @@ export default function Profile() {
     if (isAuthLoading) {
         return (
             <div className="flex items-center justify-center h-screen">
-                <Loader2 className="w-10 h-10 animate-spin text-[#fd267a]" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
         );
     }
 
     if (!user) return null;
+
+    // Use photos[0] which should be the high quality URL
+    const profileImage = user.photos?.[0];
 
     return (
         <div className="min-h-screen w-full bg-gray-50">
@@ -239,7 +238,7 @@ export default function Profile() {
                         {/* Avatar with Upload */}
                         <div className="relative group">
                             <Avatar className="w-32 h-32 border-4 border-gray-100 shadow-md bg-white">
-                                <AvatarImage src={user.photos?.[0]} alt={user.name} className="object-cover" />
+                                <AvatarImage src={profileImage} alt={user.name} className="object-cover" />
                                 <AvatarFallback className="text-4xl bg-orange-100 text-orange-600">
                                     {user.name?.charAt(0).toUpperCase()}
                                 </AvatarFallback>
@@ -250,7 +249,7 @@ export default function Profile() {
                                 className="absolute bottom-1 right-1 p-2.5 bg-white rounded-full shadow-lg cursor-pointer hover:bg-gray-50 transition-all border border-gray-200 group-hover:scale-110"
                             >
                                 {isUploading ? (
-                                    <Loader2 className="w-5 h-5 animate-spin text-[#fd267a]" />
+                                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
                                 ) : (
                                     <Camera className="w-5 h-5 text-gray-600" />
                                 )}
@@ -260,7 +259,7 @@ export default function Profile() {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={handleImageUpload}
+                                onChange={handleFileSelect}
                                 disabled={isUploading}
                             />
                         </div>
@@ -383,7 +382,7 @@ export default function Profile() {
                                         value={formData.bio}
                                         onChange={handleInputChange}
                                         rows={4}
-                                        className="w-full text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-lg border-2 border-gray-200 text-sm focus:outline-none focus:border-[#fd267a] resize-none"
+                                        className="w-full text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-lg border-2 border-gray-200 text-sm focus:outline-none focus:border-primary resize-none"
                                         placeholder="Tell us about yourself..."
                                     />
                                 </div>
@@ -422,91 +421,16 @@ export default function Profile() {
                                             variant="secondary"
                                             className="px-4 py-2 text-sm font-medium bg-gray-50 border border-gray-200 text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-colors"
                                         >
-                                                {interest}
-                                        {interest}
-                                    </Badge>
-                                ))}
-                                {(!user.interests || user.interests.length === 0) && (
-                                    <span className="text-gray-500 italic text-sm">No interests added.</span>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Account Settings Section (Edit Mode Only) */}
-                    {isEditing && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <h3 className="font-semibold text-xl text-gray-900 mb-4">Account Settings</h3>
-                            
-                            <div className="space-y-4">
-                                {/* Email */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-sm">Email</Label>
-                                    <Input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        placeholder="your.email@example.com"
-                                        className="text-sm border-2"
-                                    />
+                                            {interest}
+                                        </Badge>
+                                    ))}
+                                    {(!user.interests || user.interests.length === 0) && (
+                                        <span className="text-gray-500 italic text-sm">No interests added.</span>
+                                    )}
                                 </div>
-
-                                {/* Password (Optional) */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="password" className="text-sm">
-                                        Change Password (Optional)
-                                    </Label>
-                                    <Input
-                                        id="password"
-                                        name="password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                placeholder="Leave blank to keep current password"
-                        className="text-sm border-2"
-                    />
-                    <p className="text-xs text-gray-500">
-                        Only fill this if you want to change your password
-                    </p>
-                </div>
-
-                {/* Location Coordinates */}
-                <div className="space-y-2">
-                    <Label className="text-sm">Location Coordinates</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <Input
-                                id="latitude"
-                                name="latitude"
-                                type="text"
-                                value={formData.latitude}
-                                onChange={handleInputChange}
-                                placeholder="Latitude (e.g., 19.0760)"
-                                className="text-sm border-2"
-                            />
-                        </div>
-                        <div>
-                            <Input
-                                id="longitude"
-                                name="longitude"
-                                type="text"
-                                value={formData.longitude}
-                                onChange={handleInputChange}
-                                placeholder="Longitude (e.g., 72.877)"
-                                className="text-sm border-2"
-                            />
+                            )}
                         </div>
                     </div>
-                    <p className="text-xs text-gray-500">
-                        Enter your location coordinates (latitude, longitude)
-                    </p>
-                </div>
-            </div>
-        </div>
-    )}
-</div>
 
                     {/* Right Column: Account Details */}
                     <div className="lg:col-span-1">
@@ -518,50 +442,95 @@ export default function Profile() {
                                     <span className="text-sm text-gray-600">Gender</span>
                                     {isEditing ? (
                                         <select
-                            name="gender"
-                            value={formData.gender}
-                            onChange={handleInputChange}
-                            className="text-sm font-medium capitalize border-2 border-gray-200 rounded-md px-3 py-1 focus:outline-none focus:border-[#fd267a]"
-                        >
-                            <option value="">Select...</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
-                    ) : (
-                        <span className="text-sm font-medium capitalize text-gray-900">{user.gender}</span>
-                    )}
-                </div>
+                                            name="gender"
+                                            value={formData.gender}
+                                            onChange={handleInputChange}
+                                            className="text-sm font-medium capitalize border-2 border-gray-200 rounded-md px-3 py-1 focus:outline-none focus:border-primary"
+                                        >
+                                            <option value="">Select...</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    ) : (
+                                        <span className="text-sm font-medium capitalize text-gray-900">{user.gender}</span>
+                                    )}
+                                </div>
 
-                {/* Status */}
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Status</span>
-                    <span className="text-sm font-medium text-green-600">Active</span>
-                </div>
+                                {/* Status */}
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600">Status</span>
+                                    <span className="text-sm font-medium text-green-600">Active</span>
+                                </div>
 
-                {/* Verified */}
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Verified</span>
-                    <span className={user.is_verified ? "text-sm font-medium text-blue-600" : "text-sm font-medium text-gray-500"}>
-                        {user.is_verified ? "Yes" : "No"}
-                    </span>
-                </div>
+                                {/* Verified */}
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600">Verified</span>
+                                    <span className={user.is_verified ? "text-sm font-medium text-blue-600" : "text-sm font-medium text-gray-500"}>
+                                        {user.is_verified ? "Yes" : "No"}
+                                    </span>
+                                </div>
 
-                {/* Notifications */}
-                <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-600">Notifications</span>
-                    <div className="flex items-center gap-1.5">
-                        <Bell className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">
-                            {user.preferences?.notifications ? "On" : "Off"}
-                        </span>
+                                {/* Notifications */}
+                                <div className="flex justify-between items-center py-2">
+                                    <span className="text-sm text-gray-600">Notifications</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <Bell className="w-4 h-4 text-gray-400" />
+                                        <span className="text-sm font-medium text-gray-900">
+                                            {user.preferences?.notifications ? "On" : "Off"}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {isEditing && (
+                                    <div className="mt-6 pt-6 border-t border-gray-200">
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="email" className="text-sm">Email</Label>
+                                                <Input
+                                                    id="email"
+                                                    name="email"
+                                                    type="email"
+                                                    value={formData.email}
+                                                    onChange={handleInputChange}
+                                                    placeholder="your.email@example.com"
+                                                    className="text-sm border-2"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="password" className="text-sm">
+                                                    Change Password (Optional)
+                                                </Label>
+                                                <Input
+                                                    id="password"
+                                                    name="password"
+                                                    type="password"
+                                                    value={formData.password}
+                                                    onChange={handleInputChange}
+                                                    placeholder="Leave blank to keep current password"
+                                                    className="text-sm border-2"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-            </div>
+
+            {/* Image Cropper Dialog */}
+            <ImageCropper
+                open={isCropperOpen}
+                onClose={() => {
+                    setIsCropperOpen(false);
+                    setSelectedImageFile(null);
+                }}
+                onCropComplete={handleCropComplete}
+                imageFile={selectedImageFile}
+            />
         </div>
     );
 }

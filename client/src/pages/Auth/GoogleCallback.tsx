@@ -36,7 +36,7 @@ export default function GoogleCallback() {
             <div className="text-center space-y-4 max-w-md w-full">
                 {status !== "Error" ? (
                     <>
-                        <Loader2 className="w-10 h-10 animate-spin text-[#fd267a] mx-auto" />
+                        <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
                         <p className="text-gray-500">{status}</p>
                     </>
                 ) : (

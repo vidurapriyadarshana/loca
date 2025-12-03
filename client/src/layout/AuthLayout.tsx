@@ -11,7 +11,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
     return (
         <div className="min-h-screen w-full flex">
             {/* Left Side - Branding */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#fd267a] to-[#ff6036] items-center justify-center p-12 relative overflow-hidden">
+            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary to-secondary items-center justify-center p-12 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 <div className="relative z-10 text-center space-y-6">
                     <motion.div

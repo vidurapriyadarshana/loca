@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Heart, MapPin, Calendar, MessageCircle, Loader2, Users } from 'lucide-react';
+import { Heart, MapPin, Calendar, MessageCircle, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { matchAPI } from '@/api/services';
 import { useAuthStore } from '@/store/authStore';
 import type { Match, User } from '@/types';
@@ -37,7 +36,7 @@ export default function Matches() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-                <Loader2 className="w-10 h-10 animate-spin text-[#fd267a]" />
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
             </div>
         );
     }
@@ -47,7 +46,7 @@ export default function Matches() {
             <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] px-4">
                 <div className="text-center max-w-md">
                     <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Heart className="w-12 h-12 text-[#fd267a]" />
+                        <Heart className="w-12 h-12 text-primary" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">No matches yet</h2>
                     <p className="text-gray-600 mb-6">
@@ -55,7 +54,7 @@ export default function Matches() {
                     </p>
                     <Button
                         onClick={() => window.location.href = '/dashboard'}
-                        className="bg-gradient-to-r from-[#fd267a] to-[#ff6036]"
+                        className="bg-gradient-to-r from-primary to-secondary"
                     >
                         Start Swiping
                     </Button>
@@ -70,7 +69,7 @@ export default function Matches() {
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 bg-gradient-to-br from-[#fd267a] to-[#ff6036] rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
                             <Heart className="w-6 h-6 text-white fill-white" />
                         </div>
                         <div>
@@ -110,7 +109,7 @@ export default function Matches() {
 
                                     {/* Match Badge */}
                                     <div className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg">
-                                        <Heart className="w-5 h-5 text-[#fd267a] fill-[#fd267a]" />
+                                        <Heart className="w-5 h-5 text-primary fill-primary" />
                                     </div>
                                 </div>
 
@@ -164,7 +163,7 @@ export default function Matches() {
                                     </div>
 
                                     <Button
-                                        className="w-full bg-gradient-to-r from-[#fd267a] to-[#ff6036] hover:shadow-lg transition-all"
+                                        className="w-full bg-gradient-to-r from-primary to-secondary hover:shadow-lg transition-all"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             // Future: Open chat
@@ -260,7 +259,7 @@ export default function Matches() {
                                         )}
 
                                         <div className="flex items-center gap-3 text-sm text-gray-500 pt-4 border-t border-gray-200">
-                                            <Heart className="w-4 h-4 text-[#fd267a] fill-[#fd267a]" />
+                                            <Heart className="w-4 h-4 text-primary fill-primary" />
                                             <span>
                                                 Matched on {new Date(selectedMatch.created_at).toLocaleDateString('en-US', {
                                                     year: 'numeric',
@@ -271,7 +270,7 @@ export default function Matches() {
                                         </div>
 
                                         <Button
-                                            className="w-full bg-gradient-to-r from-[#fd267a] to-[#ff6036] py-6 text-lg"
+                                            className="w-full bg-gradient-to-r from-primary to-secondary py-6 text-lg"
                                             onClick={() => {
                                                 alert(`Chat feature coming soon! Start a conversation with ${matchedUser.name}`);
                                             }}

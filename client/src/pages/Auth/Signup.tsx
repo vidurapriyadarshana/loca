@@ -170,8 +170,8 @@ export default function Signup() {
                                 className={cn(
                                     "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border-2",
                                     formData.interests.includes(interest)
-                                        ? "bg-gradient-to-r from-[#fd267a] to-[#ff6036] text-white border-transparent shadow-md transform scale-105"
-                                        : "bg-white text-gray-600 border-slate-200 hover:border-[#fd267a]/50 hover:bg-slate-50"
+                                        ? "bg-gradient-to-r from-primary to-secondary text-white border-transparent shadow-md transform scale-105"
+                                        : "bg-white text-gray-600 border-slate-200 hover:border-primary/50 hover:bg-slate-50"
                                 )}
                             >
                                 {interest}
@@ -184,7 +184,7 @@ export default function Signup() {
                     <Label htmlFor="bio">Bio</Label>
                     <textarea
                         id="bio"
-                        className="flex min-h-[80px] w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd267a]/20 focus-visible:border-[#fd267a] disabled:cursor-not-allowed disabled:opacity-50 hover:border-slate-300 transition-all duration-200"
+                        className="flex min-h-[80px] w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 hover:border-slate-300 transition-all duration-200"
                         placeholder="Tell us about yourself..."
                         value={formData.bio}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, bio: e.target.value })}
@@ -209,7 +209,7 @@ export default function Signup() {
 
             <div className="text-center text-sm text-gray-500">
                 Already have an account?{" "}
-                <Link to="/login" className="font-bold text-[#fd267a] hover:underline">
+                <Link to="/login" className="font-bold text-primary hover:underline">
                     Log in
                 </Link>
             </div>
