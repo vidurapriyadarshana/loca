@@ -39,11 +39,11 @@ const startServer = async () => {
         
         // 3. Start listening
         app.listen(port, () => {
-            console.log(`API running on port ${port}`);
+            logger.info(`API running on port ${port}`);
         });
 
     } catch (error) {
-        console.error("Failed to start server:", error);
+        logger.error("Failed to start server:", error);
         process.exit(1); 
     }
 };

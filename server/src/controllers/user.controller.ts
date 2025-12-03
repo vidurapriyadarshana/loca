@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiResponse } from '../utils/ApiResponse';
 import * as userService from '../services/user.service';
-import { logger } from '../config/logger.config';
 
 const asyncHandler = (
   fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
@@ -77,8 +76,6 @@ export const getNearbyUsers = asyncHandler(
     const userId = req.user?.id;
     const { longitude, latitude, radius, limit, gender } = req.query;
 
-    logger.debug(`getNearbyUsers called with params: ${JSON.stringify({ longitude, latitude, radius, limit, gender })}`);
-
     let lng: number;
     let lat: number;
 
@@ -99,22 +96,16 @@ export const getNearbyUsers = asyncHandler(
       lat = user.location.coordinates[1];
     }
 
-    const maxDistance = radius ? parseInt(radius as string) : 50000; // Default 50km (increased from 10km)
+    const maxDistance = radius ? parseInt(radius as string) : 50000; // Default 50km
     const maxLimit = limit ? parseInt(limit as string) : 20; // Default 20 users
     const genderFilter = gender as string | undefined;
 
-    logger.debug(`Searching nearby users with: lng=${lng}, lat=${lat}, maxDistance=${maxDistance}, limit=${maxLimit}, gender=${genderFilter}`);
-
     const nearbyUsers = await userService.findNearbyUsers(lng, lat, maxDistance, maxLimit, genderFilter);
-
-    logger.debug(`Found ${nearbyUsers.length} nearby users before filtering current user`);
 
     // Filter out the current user from results
     const filteredUsers = nearbyUsers.filter(
       (user: any) => user._id.toString() !== userId
     );
-
-    logger.info(`Returning ${filteredUsers.length} nearby users for user ${userId}`);
 
     // Build response with only provided params
     const searchParams: any = {
