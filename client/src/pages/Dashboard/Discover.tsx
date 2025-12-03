@@ -128,7 +128,7 @@ export default function Discover() {
                     <p className="text-gray-600 mb-6">
                         Check back later for more potential matches, or try adjusting your search preferences.
                     </p>
-                    <Button onClick={loadNearbyUsers} className="bg-gradient-to-r from-primary to-secondary">
+                    <Button onClick={loadNearbyUsers} className="bg-linear-to-r from-primary to-secondary">
                         Refresh
                     </Button>
                 </div>
@@ -137,7 +137,7 @@ export default function Discover() {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
+        <div className="h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-linear-to-br from-orange-50 via-red-50 to-pink-50">
             <div className="w-full max-w-md relative flex flex-col items-center gap-6">
                 {/* Filter Button - Moved above cards */}
                 <div className="self-end z-50">
@@ -189,7 +189,7 @@ export default function Discover() {
                                             type="button"
                                             variant={filters.gender === 'all' ? 'default' : 'outline'}
                                             onClick={() => setFilters(prev => ({ ...prev, gender: 'all' }))}
-                                            className={filters.gender === 'all' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                            className={filters.gender === 'all' ? 'bg-linear-to-r from-primary to-secondary' : ''}
                                         >
                                             Everyone
                                         </Button>
@@ -197,7 +197,7 @@ export default function Discover() {
                                             type="button"
                                             variant={filters.gender === 'female' ? 'default' : 'outline'}
                                             onClick={() => setFilters(prev => ({ ...prev, gender: 'female' }))}
-                                            className={filters.gender === 'female' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                            className={filters.gender === 'female' ? 'bg-linear-to-r from-primary to-secondary' : ''}
                                         >
                                             Women
                                         </Button>
@@ -205,7 +205,7 @@ export default function Discover() {
                                             type="button"
                                             variant={filters.gender === 'male' ? 'default' : 'outline'}
                                             onClick={() => setFilters(prev => ({ ...prev, gender: 'male' }))}
-                                            className={filters.gender === 'male' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                            className={filters.gender === 'male' ? 'bg-linear-to-r from-primary to-secondary' : ''}
                                         >
                                             Men
                                         </Button>
@@ -213,7 +213,7 @@ export default function Discover() {
                                             type="button"
                                             variant={filters.gender === 'other' ? 'default' : 'outline'}
                                             onClick={() => setFilters(prev => ({ ...prev, gender: 'other' }))}
-                                            className={filters.gender === 'other' ? 'bg-gradient-to-r from-primary to-secondary' : ''}
+                                            className={filters.gender === 'other' ? 'bg-linear-to-r from-primary to-secondary' : ''}
                                         >
                                             Other
                                         </Button>
@@ -223,7 +223,7 @@ export default function Discover() {
                                 {/* Apply Button */}
                                 <Button 
                                     onClick={applyFilters}
-                                    className="w-full bg-gradient-to-r from-primary to-secondary"
+                                    className="w-full bg-linear-to-r from-primary to-secondary"
                                 >
                                     Apply Filters
                                 </Button>
@@ -288,7 +288,7 @@ export default function Discover() {
                     <Button
                         size="lg"
                         onClick={() => handleSwipe('RIGHT')}
-                        className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary hover:scale-110 transition-all shadow-xl"
+                        className="w-20 h-20 rounded-full bg-linear-to-br from-primary to-secondary hover:scale-110 transition-all shadow-xl"
                     >
                         <Heart className="w-10 h-10 text-white fill-white" />
                     </Button>
@@ -326,7 +326,7 @@ function SwipeCard({ user, onSwipe }: SwipeCardProps) {
         >
             <Card className="h-full w-full border-2 border-gray-200 shadow-2xl overflow-hidden bg-white">
                 {/* Image */}
-                <div className="relative h-[400px] bg-gradient-to-br from-orange-100 to-pink-100">
+                <div className="relative h-[400px] bg-linear-to-br from-orange-100 to-pink-100">
                     {user.photos && user.photos[0] ? (
                         <img
                             src={user.photos[0]}

@@ -128,7 +128,7 @@ export default function ImageCropper({ open, onClose, onCropComplete, imageFile 
                     <Button
                         onClick={handleCropComplete}
                         disabled={isProcessing || !completedCrop}
-                        className="bg-gradient-to-r from-primary to-secondary"
+                        className="bg-linear-to-r from-primary to-secondary"
                     >
                         {isProcessing ? (
                             <>

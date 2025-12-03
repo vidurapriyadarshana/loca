@@ -45,7 +45,7 @@ export default function Matches() {
         return (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] px-4">
                 <div className="text-center max-w-md">
-                    <div className="w-24 h-24 bg-gradient-to-br from-orange-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-24 h-24 bg-linear-to-br from-orange-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Heart className="w-12 h-12 text-primary" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">No matches yet</h2>
@@ -54,7 +54,7 @@ export default function Matches() {
                     </p>
                     <Button
                         onClick={() => window.location.href = '/dashboard'}
-                        className="bg-gradient-to-r from-primary to-secondary"
+                        className="bg-linear-to-r from-primary to-secondary"
                     >
                         Start Swiping
                     </Button>
@@ -64,12 +64,12 @@ export default function Matches() {
     }
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 py-8 px-4">
+        <div className="min-h-[calc(100vh-4rem)] bg-linear-to-br from-orange-50 via-red-50 to-pink-50 py-8 px-4">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-linear-to-br from-primary to-secondary rounded-full flex items-center justify-center">
                             <Heart className="w-6 h-6 text-white fill-white" />
                         </div>
                         <div>
@@ -92,7 +92,7 @@ export default function Matches() {
                                 onClick={() => setSelectedMatch(match)}
                             >
                                 {/* User Image */}
-                                <div className="relative h-72 bg-gradient-to-br from-orange-100 to-pink-100">
+                                <div className="relative h-72 bg-linear-to-br from-orange-100 to-pink-100">
                                     {matchedUser.photos && matchedUser.photos[0] ? (
                                         <img
                                             src={matchedUser.photos[0]}
@@ -163,7 +163,7 @@ export default function Matches() {
                                     </div>
 
                                     <Button
-                                        className="w-full bg-gradient-to-r from-primary to-secondary hover:shadow-lg transition-all"
+                                        className="w-full bg-linear-to-r from-primary to-secondary hover:shadow-lg transition-all"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             // Future: Open chat
@@ -195,7 +195,7 @@ export default function Matches() {
                             return (
                                 <div>
                                     {/* Header Image */}
-                                    <div className="relative h-96 bg-gradient-to-br from-orange-100 to-pink-100">
+                                    <div className="relative h-96 bg-linear-to-br from-orange-100 to-pink-100">
                                         {matchedUser.photos && matchedUser.photos[0] ? (
                                             <img
                                                 src={matchedUser.photos[0]}
@@ -270,7 +270,7 @@ export default function Matches() {
                                         </div>
 
                                         <Button
-                                            className="w-full bg-gradient-to-r from-primary to-secondary py-6 text-lg"
+                                            className="w-full bg-linear-to-r from-primary to-secondary py-6 text-lg"
                                             onClick={() => {
                                                 alert(`Chat feature coming soon! Start a conversation with ${matchedUser.name}`);
                                             }}
