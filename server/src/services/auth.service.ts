@@ -138,3 +138,33 @@ export const logoutUser = async (token: string): Promise<void> => {
   await user.save();
   logger.info(`Auth Service: logoutUser - User logged out successfully, token removed for user ID: ${user._id}`);
 };
+
+/**
+ * Handles password change for authenticated user
+ */
+export const changePassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> => {
+  logger.info(`Auth Service: changePassword - Attempting to change password for user ID: ${userId}`);
+  
+  const user = await User.findById(userId).select("+password");
+  if (!user) {
+    throw new NotFoundError("User not found.");
+  }
+
+  if (!user.password) {
+    throw new BadRequestError("Cannot change password for Google OAuth accounts.");
+  }
+
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new UnauthorizedError("Current password is incorrect.");
+  }
+
+  user.password = newPassword;
+  await user.save();
+  
+  logger.info(`Auth Service: changePassword - Password changed successfully for user ID: ${userId}`);
+};

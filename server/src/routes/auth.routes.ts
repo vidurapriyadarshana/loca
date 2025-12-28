@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import passport from 'passport';
 import * as authController from '../controllers/auth.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -26,5 +27,8 @@ router.post('/logout', authController.logout);
 // Password Reset
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password/:token', authController.resetPassword);
+
+// Change Password (requires authentication)
+router.post('/change-password', authenticate, authController.changePassword);
 
 export default router;

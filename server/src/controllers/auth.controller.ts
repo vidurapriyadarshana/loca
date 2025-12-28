@@ -213,3 +213,28 @@ export const resetPassword = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user?.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json(
+        new ApiResponse(400, null, "Current password and new password are required")
+      );
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json(
+        new ApiResponse(400, null, "New password must be at least 6 characters")
+      );
+    }
+
+    await authService.changePassword(userId, currentPassword, newPassword);
+
+    res.status(200).json(
+      new ApiResponse(200, null, "Password changed successfully")
+    );
+  }
+);
