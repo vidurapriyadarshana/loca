@@ -1,5 +1,16 @@
-import type { User } from '@/types';
+import type { User, Match } from '@/types';
 import api from './axios';
+
+// ============ AUTH API ============
+export const authAPI = {
+    changePassword: async (currentPassword: string, newPassword: string) => {
+        const response = await api.post('/auth/change-password', {
+            currentPassword,
+            newPassword
+        });
+        return response.data;
+    },
+};
 
 // ============ USER API ============
 export const userAPI = {
@@ -66,13 +77,6 @@ export const swipeAPI = {
 };
 
 // ============ MATCH API ============
-export interface Match {
-    _id: string;
-    user1: User;
-    user2: User;
-    created_at: string;
-}
-
 export const matchAPI = {
     getMatches: async (): Promise<{ matches: Match[]; count: number }> => {
         const response = await api.get('/matches');

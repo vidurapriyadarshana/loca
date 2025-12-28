@@ -10,6 +10,7 @@ import Discover from "../pages/Dashboard/Discover";
 import Matches from "../pages/Dashboard/Matches";
 import Layout from "../layout/Layout";
 import Profile from "../pages/Profile/Profile";
+import Settings from "../pages/Settings/Settings";
 
 export default function AppRouter() {
     return (
@@ -29,6 +30,7 @@ export default function AppRouter() {
                         <Route path="/discover" element={<Discover />} />
                         <Route path="/matches" element={<Matches />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
                     </Route>
                 </Route>
 

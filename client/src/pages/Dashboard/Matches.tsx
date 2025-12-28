@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Heart, MapPin, Calendar, MessageCircle, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +22,15 @@ export default function Matches() {
         try {
             setIsLoading(true);
             const data = await matchAPI.getMatches();
-            setMatches(data.matches || []);
+            console.log('Matches data:', data);
+            const validMatches = (data.matches || []).filter(m => {
+                if (!m || !m.user1 || !m.user2 || typeof m.user1 !== 'object' || typeof m.user2 !== 'object') {
+                    console.warn('Invalid match found:', m);
+                    return false;
+                }
+                return true;
+            });
+            setMatches(validMatches);
         } catch (error) {
             console.error('Failed to load matches:', error);
         } finally {
@@ -30,6 +39,9 @@ export default function Matches() {
     };
 
     const getMatchedUser = (match: Match): User => {
+        if (!match?.user1 || !match?.user2) {
+            return (match?.user1 || match?.user2 || { name: 'Unknown', _id: 'unknown' }) as User;
+        }
         return match.user1._id === currentUser?._id ? match.user2 : match.user1;
     };
 
@@ -167,7 +179,7 @@ export default function Matches() {
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             // Future: Open chat
-                                            alert(`Chat feature coming soon! Start a conversation with ${matchedUser.name}`);
+                                            toast.info(`Chat feature coming soon! Start a conversation with ${matchedUser.name}`);
                                         }}
                                     >
                                         <MessageCircle className="w-4 h-4 mr-2" />
@@ -272,7 +284,7 @@ export default function Matches() {
                                         <Button
                                             className="w-full bg-linear-to-r from-primary to-secondary py-6 text-lg"
                                             onClick={() => {
-                                                alert(`Chat feature coming soon! Start a conversation with ${matchedUser.name}`);
+                                                toast.info(`Chat feature coming soon! Start a conversation with ${matchedUser.name}`);
                                             }}
                                         >
                                             <MessageCircle className="w-5 h-5 mr-2" />

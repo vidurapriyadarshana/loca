@@ -32,6 +32,7 @@ export interface Match {
     created_at: string;
 }
 
+
 export interface Swipe {
     _id: string;
     swiped_by: string;

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { LogOut, Menu, X, Flame, Heart, User } from "lucide-react";
+import { LogOut, Menu, X, Flame, Heart, User, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -26,6 +26,7 @@ export default function Header() {
         { path: "/discover", label: "Discover", icon: Flame },
         { path: "/matches", label: "Matches", icon: Heart },
         { path: "/profile", label: "Profile", icon: User },
+        { path: "/settings", label: "Settings", icon: Settings },
     ];
 
     return (

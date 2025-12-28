@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useAuthStore } from "../../store/authStore";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Calendar, Mail, CheckCircle2, Clock, Bell, Camera, Loader2, Pencil, X, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MapPin, Calendar, Mail, CheckCircle2, Clock, Bell, Camera, Loader2, Pencil } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import api from "../../api/axios";
 import ImageCropper from "@/components/ImageCropper";
@@ -12,30 +14,26 @@ import ImageCropper from "@/components/ImageCropper";
 export default function Profile() {
     const { user, updateProfile, checkAuth, isLoading: isAuthLoading } = useAuthStore();
     const [isUploading, setIsUploading] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isCropperOpen, setIsCropperOpen] = useState(false);
     const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     
-    // Form state for editable fields
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         age: 0,
         gender: "",
         bio: "",
-        interests: "",
-        password: "" // Optional - only if user wants to change password
+        interests: ""
     });
 
-    // Fetch profile data on mount
     useEffect(() => {
         if (!user) {
             checkAuth();
         }
     }, [user, checkAuth]);
 
-    // Initialize form data when user data is loaded
     useEffect(() => {
         if (user) {
             setFormData({
@@ -44,8 +42,7 @@ export default function Profile() {
                 age: user.age || 0,
                 gender: user.gender || "",
                 bio: user.bio || "",
-                interests: user.interests?.join(", ") || "",
-                password: ""
+                interests: user.interests?.join(", ") || ""
             });
         }
     }, [user]);
@@ -54,21 +51,18 @@ export default function Profile() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type
         if (!file.type.startsWith('image/')) {
-            alert("Please select a valid image file.");
+            toast.error("Please select a valid image file.");
             return;
         }
 
-        // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert("File size must be less than 5MB.");
+            toast.error("File size must be less than 5MB.");
             return;
         }
 
         setSelectedImageFile(file);
         setIsCropperOpen(true);
-        // Reset the input value so the same file can be selected again if needed
         e.target.value = '';
     };
 
@@ -77,62 +71,47 @@ export default function Profile() {
         setIsUploading(true);
 
         const formData = new FormData();
-        // Convert blob to file
         const file = new File([croppedImageBlob], "profile-picture.jpg", { type: "image/jpeg" });
         formData.append("image", file);
 
         try {
-            // 1. Upload Image
             const uploadResponse = await api.post("/uploads/image", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             
-            console.log('Upload response:', uploadResponse.data);
-            
-            // Backend returns: {statusCode: 201, data: {url: "..."}, message, success}
             const responseData = uploadResponse.data.data || uploadResponse.data;
             const imageUrl = responseData.url || responseData.imageUrl;
             
             if (!imageUrl) {
-                console.error('No URL in response:', uploadResponse.data);
                 throw new Error("Image URL not returned from server");
             }
 
-            console.log('Image URL:', imageUrl);
-
-            // 2. Update Profile with new image URL
             const updatedPhotos = [imageUrl, ...(user?.photos?.filter(p => p !== imageUrl) || [])];
-
             await updateProfile({ photos: updatedPhotos });
             
-            console.log("Profile picture updated successfully!");
-            alert("Profile picture updated successfully!");
+            toast.success("Profile picture updated successfully!");
         } catch (err) {
             console.error("Image upload failed:", err);
             const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || "Failed to upload image. Please try again.";
-            alert(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setIsUploading(false);
             setSelectedImageFile(null);
         }
     };
 
-    const handleEditToggle = () => {
-        if (isEditing) {
-            // Cancel editing - reset form data
-            if (user) {
-                setFormData({
-                    name: user.name || "",
-                    email: user.email || "",
-                    age: user.age || 0,
-                    gender: user.gender || "",
-                    bio: user.bio || "",
-                    interests: user.interests?.join(", ") || "",
-                    password: ""
-                });
-            }
+    const handleOpenEditDialog = () => {
+        if (user) {
+            setFormData({
+                name: user.name || "",
+                email: user.email || "",
+                age: user.age || 0,
+                gender: user.gender || "",
+                bio: user.bio || "",
+                interests: user.interests?.join(", ") || ""
+            });
         }
-        setIsEditing(!isEditing);
+        setIsEditDialogOpen(true);
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -146,45 +125,41 @@ export default function Profile() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            // Validate required fields
             if (!formData.name || !formData.name.trim()) {
-                alert("Name is required");
+                toast.error("Name is required");
                 setIsSaving(false);
                 return;
             }
 
             if (!formData.email || !formData.email.trim()) {
-                alert("Email is required");
+                toast.error("Email is required");
                 setIsSaving(false);
                 return;
             }
 
             if (!formData.age || formData.age <= 0) {
-                alert("Valid age is required");
+                toast.error("Valid age is required");
                 setIsSaving(false);
                 return;
             }
 
             if (!formData.gender || !["male", "female", "other"].includes(formData.gender)) {
-                alert("Please select a valid gender");
+                toast.error("Please select a valid gender");
                 setIsSaving(false);
                 return;
             }
 
-            // Prepare data for API - only include valid fields
-            const updateData: any = {
+            const updateData: Record<string, unknown> = {
                 name: formData.name.trim(),
                 email: formData.email.trim(),
                 age: formData.age,
                 gender: formData.gender
             };
 
-            // Add bio if provided
             if (formData.bio && formData.bio.trim()) {
                 updateData.bio = formData.bio.trim();
             }
 
-            // Add interests if provided
             if (formData.interests && formData.interests.trim()) {
                 updateData.interests = formData.interests
                     .split(",")
@@ -192,24 +167,14 @@ export default function Profile() {
                     .filter(i => i.length > 0);
             }
 
-            // Add password if provided (for password change)
-            if (formData.password && formData.password.trim().length > 0) {
-                updateData.password = formData.password;
-            }
-
-            console.log('Sending update data:', updateData);
-
             await updateProfile(updateData);
             
-            alert("Profile updated successfully!");
-            setIsEditing(false);
-            
-            // Clear password field after successful update
-            setFormData(prev => ({ ...prev, password: "" }));
+            toast.success("Profile updated successfully!");
+            setIsEditDialogOpen(false);
         } catch (err) {
             console.error("Profile update failed:", err);
             const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || "Failed to update profile. Please try again.";
-            alert(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setIsSaving(false);
         }
@@ -225,7 +190,6 @@ export default function Profile() {
 
     if (!user) return null;
 
-    // Use photos[0] which should be the high quality URL
     const profileImage = user.photos?.[0];
 
     return (
@@ -234,7 +198,6 @@ export default function Profile() {
                 {/* Profile Header */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-6">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-
                         {/* Avatar with Upload */}
                         <div className="relative group">
                             <Avatar className="w-32 h-32 border-4 border-gray-100 shadow-md bg-white">
@@ -267,74 +230,21 @@ export default function Profile() {
                         <div className="flex-1 space-y-3">
                             <div className="flex items-center justify-between gap-3 flex-wrap">
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    {isEditing ? (
-                                        <Input
-                                            name="name"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                            className="text-3xl md:text-4xl font-bold h-auto py-2 px-3 border-2"
-                                        />
-                                    ) : (
-                                        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{user.name}</h1>
-                                    )}
+                                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{user.name}</h1>
                                     {user.is_verified && (
                                         <CheckCircle2 className="w-7 h-7 text-blue-500 fill-blue-50" />
                                     )}
-                                    {isEditing ? (
-                                        <>
-                                            <span className="text-2xl md:text-3xl text-gray-500 font-normal">,</span>
-                                            <Input
-                                                name="age"
-                                                type="number"
-                                                value={formData.age}
-                                                onChange={handleInputChange}
-                                                className="text-2xl md:text-3xl w-20 h-auto py-2 px-3 border-2"
-                                            />
-                                        </>
-                                    ) : (
-                                        <span className="text-2xl md:text-3xl text-gray-500 font-normal">, {user.age}</span>
-                                    )}
+                                    <span className="text-2xl md:text-3xl text-gray-500 font-normal">, {user.age}</span>
                                 </div>
                                 
-                                {/* Edit/Save/Cancel Buttons */}
-                                <div className="flex items-center gap-2">
-                                    {isEditing ? (
-                                        <>
-                                            <Button
-                                                onClick={handleSave}
-                                                disabled={isSaving}
-                                                className="bg-green-600 hover:bg-green-700 text-white"
-                                            >
-                                                {isSaving ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                ) : (
-                                                    <>
-                                                        <Check className="w-5 h-5 mr-2" />
-                                                        Save
-                                                    </>
-                                                )}
-                                            </Button>
-                                            <Button
-                                                onClick={handleEditToggle}
-                                                disabled={isSaving}
-                                                variant="outline"
-                                                className="border-gray-300"
-                                            >
-                                                <X className="w-5 h-5 mr-2" />
-                                                Cancel
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <Button
-                                            onClick={handleEditToggle}
-                                            variant="outline"
-                                            className="border-gray-300 hover:bg-gray-50"
-                                        >
-                                            <Pencil className="w-5 h-5 mr-2" />
-                                            Edit Profile
-                                        </Button>
-                                    )}
-                                </div>
+                                <Button
+                                    onClick={handleOpenEditDialog}
+                                    variant="outline"
+                                    className="border-gray-300 hover:bg-gray-50"
+                                >
+                                    <Pencil className="w-5 h-5 mr-2" />
+                                    Edit Profile
+                                </Button>
                             </div>
                             <div className="flex flex-wrap items-center gap-4 text-gray-600 text-sm">
                                 {user.location && (
@@ -368,67 +278,29 @@ export default function Profile() {
                 <div className="grid gap-6 lg:grid-cols-3">
                     {/* Left Column: Bio & Interests */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Bio Section */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                            <h3 className="font-semibold text-xl text-gray-900 mb-4">
-                                About Me
-                            </h3>
-                            {isEditing ? (
-                                <div className="space-y-2">
-                                    <Label htmlFor="bio" className="text-sm">Bio</Label>
-                                    <textarea
-                                        id="bio"
-                                        name="bio"
-                                        value={formData.bio}
-                                        onChange={handleInputChange}
-                                        rows={4}
-                                        className="w-full text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-lg border-2 border-gray-200 text-sm focus:outline-none focus:border-primary resize-none"
-                                        placeholder="Tell us about yourself..."
-                                    />
-                                </div>
-                            ) : (
-                                <p className="text-gray-700 leading-relaxed text-sm">
-                                    {user.bio || "No bio yet."}
-                                </p>
-                            )}
+                            <h3 className="font-semibold text-xl text-gray-900 mb-4">About Me</h3>
+                            <p className="text-gray-700 leading-relaxed text-sm">
+                                {user.bio || "No bio yet."}
+                            </p>
                         </div>
 
-                        {/* Interests Section */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                             <h3 className="font-semibold text-xl text-gray-900 mb-4">Interests</h3>
-                            {isEditing ? (
-                                <div className="space-y-2">
-                                    <Label htmlFor="interests" className="text-sm">
-                                        Interests (comma-separated)
-                                    </Label>
-                                    <Input
-                                        id="interests"
-                                        name="interests"
-                                        value={formData.interests}
-                                        onChange={handleInputChange}
-                                        placeholder="e.g., Reading, Travel, Cooking, Music"
-                                        className="text-sm border-2"
-                                    />
-                                    <p className="text-xs text-gray-500">
-                                        Separate each interest with a comma
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {user.interests?.map((interest) => (
-                                        <Badge
-                                            key={interest}
-                                            variant="secondary"
-                                            className="px-4 py-2 text-sm font-medium bg-gray-50 border border-gray-200 text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-colors"
-                                        >
-                                            {interest}
-                                        </Badge>
-                                    ))}
-                                    {(!user.interests || user.interests.length === 0) && (
-                                        <span className="text-gray-500 italic text-sm">No interests added.</span>
-                                    )}
-                                </div>
-                            )}
+                            <div className="flex flex-wrap gap-2">
+                                {user.interests?.map((interest) => (
+                                    <Badge
+                                        key={interest}
+                                        variant="secondary"
+                                        className="px-4 py-2 text-sm font-medium bg-gray-50 border border-gray-200 text-gray-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-colors"
+                                    >
+                                        {interest}
+                                    </Badge>
+                                ))}
+                                {(!user.interests || user.interests.length === 0) && (
+                                    <span className="text-gray-500 italic text-sm">No interests added.</span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -437,33 +309,16 @@ export default function Profile() {
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                             <h3 className="font-semibold text-xl text-gray-900 mb-4">Details</h3>
                             <div className="space-y-4">
-                                {/* Gender */}
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600">Gender</span>
-                                    {isEditing ? (
-                                        <select
-                                            name="gender"
-                                            value={formData.gender}
-                                            onChange={handleInputChange}
-                                            className="text-sm font-medium capitalize border-2 border-gray-200 rounded-md px-3 py-1 focus:outline-none focus:border-primary"
-                                        >
-                                            <option value="">Select...</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    ) : (
-                                        <span className="text-sm font-medium capitalize text-gray-900">{user.gender}</span>
-                                    )}
+                                    <span className="text-sm font-medium capitalize text-gray-900">{user.gender}</span>
                                 </div>
 
-                                {/* Status */}
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600">Status</span>
                                     <span className="text-sm font-medium text-green-600">Active</span>
                                 </div>
 
-                                {/* Verified */}
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600">Verified</span>
                                     <span className={user.is_verified ? "text-sm font-medium text-blue-600" : "text-sm font-medium text-gray-500"}>
@@ -471,7 +326,6 @@ export default function Profile() {
                                     </span>
                                 </div>
 
-                                {/* Notifications */}
                                 <div className="flex justify-between items-center py-2">
                                     <span className="text-sm text-gray-600">Notifications</span>
                                     <div className="flex items-center gap-1.5">
@@ -481,45 +335,122 @@ export default function Profile() {
                                         </span>
                                     </div>
                                 </div>
-
-                                {isEditing && (
-                                    <div className="mt-6 pt-6 border-t border-gray-200">
-                                        <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="email" className="text-sm">Email</Label>
-                                                <Input
-                                                    id="email"
-                                                    name="email"
-                                                    type="email"
-                                                    value={formData.email}
-                                                    onChange={handleInputChange}
-                                                    placeholder="your.email@example.com"
-                                                    className="text-sm border-2"
-                                                />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label htmlFor="password" className="text-sm">
-                                                    Change Password (Optional)
-                                                </Label>
-                                                <Input
-                                                    id="password"
-                                                    name="password"
-                                                    type="password"
-                                                    value={formData.password}
-                                                    onChange={handleInputChange}
-                                                    placeholder="Leave blank to keep current password"
-                                                    className="text-sm border-2"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Edit Profile Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">Edit Profile</DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-5 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Name</Label>
+                            <Input
+                                id="name"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                placeholder="Your name"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                placeholder="your.email@example.com"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="age">Age</Label>
+                                <Input
+                                    id="age"
+                                    name="age"
+                                    type="number"
+                                    value={formData.age}
+                                    onChange={handleInputChange}
+                                    min={18}
+                                    max={100}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <select
+                                    id="gender"
+                                    name="gender"
+                                    value={formData.gender}
+                                    onChange={handleInputChange}
+                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                >
+                                    <option value="">Select...</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="bio">Bio</Label>
+                            <textarea
+                                id="bio"
+                                name="bio"
+                                value={formData.bio}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                                placeholder="Tell us about yourself..."
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="interests">Interests</Label>
+                            <Input
+                                id="interests"
+                                name="interests"
+                                value={formData.interests}
+                                onChange={handleInputChange}
+                                placeholder="Reading, Travel, Cooking, Music"
+                            />
+                            <p className="text-xs text-gray-500">Separate each interest with a comma</p>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <Button
+                                onClick={handleSave}
+                                disabled={isSaving}
+                                className="flex-1 bg-gradient-to-r from-primary to-secondary"
+                            >
+                                {isSaving ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    "Save Changes"
+                                )}
+                            </Button>
+                            <Button
+                                onClick={() => setIsEditDialogOpen(false)}
+                                disabled={isSaving}
+                                variant="outline"
+                                className="flex-1"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Image Cropper Dialog */}
             <ImageCropper

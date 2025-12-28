@@ -1,29 +1,56 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
+import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Loader2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 interface ImageCropperProps {
     open: boolean;
     onClose: () => void;
     onCropComplete: (croppedImageBlob: Blob) => void;
     imageFile: File | null;
+    aspectRatio?: number;
+    circularCrop?: boolean;
 }
 
-export default function ImageCropper({ open, onClose, onCropComplete, imageFile }: ImageCropperProps) {
-    const [crop, setCrop] = useState<Crop>({
-        unit: '%',
-        width: 90,
-        height: 90,
-        x: 5,
-        y: 5,
-    });
-    const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+function centerAspectCrop(
+    mediaWidth: number,
+    mediaHeight: number,
+    aspect: number,
+) {
+    return centerCrop(
+        makeAspectCrop(
+            {
+                unit: '%',
+                width: 80,
+            },
+            aspect,
+            mediaWidth,
+            mediaHeight,
+        ),
+        mediaWidth,
+        mediaHeight,
+    );
+}
+
+export default function ImageCropper({
+    open,
+    onClose,
+    onCropComplete,
+    imageFile,
+    aspectRatio = 1,
+    circularCrop = true
+}: ImageCropperProps) {
+    const [crop, setCrop] = useState<Crop>();
+    const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
     const [imageSrc, setImageSrc] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
-    const imgRef = useRef<HTMLImageElement | null>(null);
+    const [scale, setScale] = useState(1);
+    const [rotate, setRotate] = useState(0);
+    const imgRef = useRef<HTMLImageElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     // Load image when file changes
     useEffect(() => {
@@ -31,20 +58,44 @@ export default function ImageCropper({ open, onClose, onCropComplete, imageFile 
             const reader = new FileReader();
             reader.onload = (e) => {
                 setImageSrc(e.target?.result as string);
+                // Reset crop state for new image
+                setCrop(undefined);
+                setCompletedCrop(undefined);
+                setScale(1);
+                setRotate(0);
             };
             reader.readAsDataURL(imageFile);
+        } else {
+            setImageSrc('');
         }
     }, [imageFile]);
 
+    // Reset state when dialog closes
+    useEffect(() => {
+        if (!open) {
+            setImageSrc('');
+            setCrop(undefined);
+            setCompletedCrop(undefined);
+            setScale(1);
+            setRotate(0);
+        }
+    }, [open]);
+
+    const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+        const { width, height } = e.currentTarget;
+        const initialCrop = centerAspectCrop(width, height, aspectRatio);
+        setCrop(initialCrop);
+    }, [aspectRatio]);
+
     const getCroppedImg = useCallback(async (): Promise<Blob | null> => {
-        if (!completedCrop || !imgRef.current) {
+        const image = imgRef.current;
+        const canvas = canvasRef.current;
+
+        if (!completedCrop || !image || !canvas) {
             return null;
         }
 
-        const image = imgRef.current;
-        const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-
         if (!ctx) {
             return null;
         }
@@ -52,23 +103,46 @@ export default function ImageCropper({ open, onClose, onCropComplete, imageFile 
         const scaleX = image.naturalWidth / image.width;
         const scaleY = image.naturalHeight / image.height;
 
-        // Set canvas size to desired output size (800x800 for profile pics)
+        // Calculate the actual crop dimensions
+        const pixelRatio = window.devicePixelRatio || 1;
         const targetSize = 800;
-        canvas.width = targetSize;
-        canvas.height = targetSize;
 
-        // Draw the cropped image
+        canvas.width = targetSize * pixelRatio;
+        canvas.height = targetSize * pixelRatio;
+
+        ctx.scale(pixelRatio, pixelRatio);
+        ctx.imageSmoothingQuality = 'high';
+
+        const cropX = completedCrop.x * scaleX;
+        const cropY = completedCrop.y * scaleY;
+        const cropWidth = completedCrop.width * scaleX;
+        const cropHeight = completedCrop.height * scaleY;
+
+        // Calculate center point for rotation
+        const centerX = targetSize / 2;
+        const centerY = targetSize / 2;
+
+        ctx.save();
+
+        // Move to center, rotate, then draw
+        ctx.translate(centerX, centerY);
+        ctx.rotate((rotate * Math.PI) / 180);
+        ctx.scale(scale, scale);
+        ctx.translate(-centerX, -centerY);
+
         ctx.drawImage(
             image,
-            completedCrop.x * scaleX,
-            completedCrop.y * scaleY,
-            completedCrop.width * scaleX,
-            completedCrop.height * scaleY,
+            cropX,
+            cropY,
+            cropWidth,
+            cropHeight,
             0,
             0,
             targetSize,
             targetSize
         );
+
+        ctx.restore();
 
         return new Promise((resolve) => {
             canvas.toBlob(
@@ -76,10 +150,10 @@ export default function ImageCropper({ open, onClose, onCropComplete, imageFile 
                     resolve(blob);
                 },
                 'image/jpeg',
-                0.9 // Quality (0-1)
+                0.92
             );
         });
-    }, [completedCrop]);
+    }, [completedCrop, scale, rotate]);
 
     const handleCropComplete = async () => {
         setIsProcessing(true);
@@ -95,50 +169,123 @@ export default function ImageCropper({ open, onClose, onCropComplete, imageFile 
         }
     };
 
+    const handleReset = () => {
+        setScale(1);
+        setRotate(0);
+        if (imgRef.current) {
+            const { width, height } = imgRef.current;
+            setCrop(centerAspectCrop(width, height, aspectRatio));
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle>Crop Your Profile Picture</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex items-center justify-center max-h-[60vh] overflow-auto">
-                    {imageSrc && (
-                        <ReactCrop
-                            crop={crop}
-                            onChange={(c) => setCrop(c)}
-                            onComplete={(c) => setCompletedCrop(c)}
-                            aspect={1}
-                            circularCrop
-                        >
-                            <img
-                                ref={imgRef}
-                                src={imageSrc}
-                                alt="Crop preview"
-                                style={{ maxHeight: '60vh', maxWidth: '100%' }}
+                <div className="space-y-4">
+                    {/* Image Crop Area */}
+                    <div className="flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden min-h-[300px] max-h-[50vh]">
+                        {imageSrc ? (
+                            <ReactCrop
+                                crop={crop}
+                                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                                onComplete={(c) => setCompletedCrop(c)}
+                                aspect={aspectRatio}
+                                circularCrop={circularCrop}
+                                className="max-h-[50vh]"
+                            >
+                                <img
+                                    ref={imgRef}
+                                    src={imageSrc}
+                                    alt="Crop preview"
+                                    onLoad={onImageLoad}
+                                    style={{
+                                        transform: `scale(${scale}) rotate(${rotate}deg)`,
+                                        maxHeight: '50vh',
+                                        maxWidth: '100%',
+                                        transition: 'transform 0.2s ease'
+                                    }}
+                                />
+                            </ReactCrop>
+                        ) : (
+                            <div className="flex items-center justify-center h-[300px] text-gray-400">
+                                <Loader2 className="w-8 h-8 animate-spin" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Controls */}
+                    <div className="space-y-4 px-2">
+                        {/* Zoom Control */}
+                        <div className="flex items-center gap-4">
+                            <ZoomOut className="w-4 h-4 text-gray-500" />
+                            <Slider
+                                value={[scale]}
+                                onValueChange={(value) => setScale(value[0])}
+                                min={0.5}
+                                max={2}
+                                step={0.1}
+                                className="flex-1"
                             />
-                        </ReactCrop>
-                    )}
+                            <ZoomIn className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-500 w-12 text-right">
+                                {Math.round(scale * 100)}%
+                            </span>
+                        </div>
+
+                        {/* Rotation Control */}
+                        <div className="flex items-center gap-4">
+                            <RotateCcw className="w-4 h-4 text-gray-500" />
+                            <Slider
+                                value={[rotate]}
+                                onValueChange={(value) => setRotate(value[0])}
+                                min={-180}
+                                max={180}
+                                step={1}
+                                className="flex-1"
+                            />
+                            <span className="text-sm text-gray-500 w-12 text-right">
+                                {rotate}°
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-                        Cancel
-                    </Button>
+                {/* Hidden canvas for processing */}
+                <canvas ref={canvasRef} className="hidden" />
+
+                <DialogFooter className="gap-2 sm:gap-0">
                     <Button
-                        onClick={handleCropComplete}
-                        disabled={isProcessing || !completedCrop}
-                        className="bg-linear-to-r from-primary to-secondary"
+                        variant="ghost"
+                        onClick={handleReset}
+                        disabled={isProcessing}
+                        className="text-gray-600"
                     >
-                        {isProcessing ? (
-                            <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            'Crop & Upload'
-                        )}
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Reset
                     </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleCropComplete}
+                            disabled={isProcessing || !completedCrop}
+                            className="bg-gradient-to-r from-primary to-secondary"
+                        >
+                            {isProcessing ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Processing...
+                                </>
+                            ) : (
+                                'Crop & Upload'
+                            )}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

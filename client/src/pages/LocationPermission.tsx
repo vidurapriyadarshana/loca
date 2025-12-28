@@ -59,11 +59,11 @@ export default function LocationPermission() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-linear-to-br from-orange-50 via-red-50 to-pink-50 flex items-center justify-center p-4">
             <Card className="max-w-lg w-full p-8 border-0 shadow-xl">
                 {/* Icon */}
                 <div className="flex justify-center mb-6">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-linear-to-r from-primary to-secondary flex items-center justify-center">
                         <MapPin className="w-10 h-10 text-white" />
                     </div>
                 </div>
@@ -100,7 +100,7 @@ export default function LocationPermission() {
                 {/* Error Message */}
                 {error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm text-red-800 font-medium mb-1">Permission Denied</p>
                             <p className="text-sm text-red-700">{error}</p>
@@ -125,7 +125,7 @@ export default function LocationPermission() {
                 <Button
                     onClick={requestLocationPermission}
                     disabled={isDetecting}
-                    className="w-full bg-gradient-to-r from-primary to-secondary text-white py-6 text-lg"
+                    className="w-full bg-linear-to-r from-primary to-secondary text-white py-6 text-lg"
                 >
                     {isDetecting ? (
                         <>
